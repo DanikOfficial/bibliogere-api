@@ -40,9 +40,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity httpSecurity) throws Exception {
 
-        final String allowedMathers[] = { "/api/v1/utilizador/entrar", "/api/v1/utilizador/refresh", "/api/v1/localizacoes/**", "/api/v1/estantes**", "/api/v1/questoes", };
+        final String allowedMathers[] = { "/api/v1/admin/**", "/api/v1/utilizador/entrar", "/api/v1/utilizador/refresh", "/api/v1/localizacoes/**", "/api/v1/estantes**", "/api/v1/questoes", };
 
-        final String[] adminMatchers = {"/api/v1/admin/**"};
+        final String[] adminMatchers = {"/api/v1/adminw/**"};
 
         final String[] adminAndAtendenteMatchers = {"/api/v1/obra/**", "/api/v1/obras/",  "/api/v1/tipos"};
 

@@ -19,7 +19,6 @@ import java.util.Optional;
 
 @Component
 public class ReusableEntityOperation {
-
     private Validator validator;
 
     public <T extends GenericModel, S extends RuntimeException> void handleEntityExists(Optional<T> optional,
@@ -42,6 +41,7 @@ public class ReusableEntityOperation {
 
         fields.forEach((key, value) -> {
             Field field = ReflectionUtils.findField(entity.getClass(), (String) key);
+            assert field != null;
             field.setAccessible(true);
             ReflectionUtils.setField(field, entity, value);
         });
@@ -50,13 +50,11 @@ public class ReusableEntityOperation {
     }
 
     public <T extends ValidableModel> void handleConstraintViolation(T entity) {
-
         validator = ValidatorUtil.getValidator();
 
         BindingResult result = new BeanPropertyBindingResult(entity, entity.getClass().getName());
         SpringValidatorAdapter adapter = new SpringValidatorAdapter(validator);
         adapter.validate(entity, result);
-        MethodParameter parameter = null;
 
         if (result.hasErrors()) {
             throw new CustomValidationException(result);
@@ -76,8 +74,6 @@ public class ReusableEntityOperation {
     }
 
     public <T extends ValidableModel> T getModelFromProxy(T entity, Class<T> clazz) {
-        T object = entity;
-
         return Hibernate.unproxy(entity, clazz);
     }
 
