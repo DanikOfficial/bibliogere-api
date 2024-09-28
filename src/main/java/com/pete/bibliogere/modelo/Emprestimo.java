@@ -6,11 +6,17 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
 @Entity(name = "emprestimos")
-@Table(name = "emprestimos")
+@Table(
+        name = "emprestimos",
+        indexes = {
+                @Index(name = "idx_emprestimos_created_at", columnList = "createdAt")
+        }
+)
 @NoArgsConstructor
 public class Emprestimo implements ValidableModel {
 
@@ -20,6 +26,8 @@ public class Emprestimo implements ValidableModel {
 
     @Column(nullable = false)
     private String utente;
+
+    private LocalDate createdAt;
 
     @Pattern(message = "O email digitado é inválido!", regexp = "^(([^<>()\\[\\]\\\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@\"]+)*)|(\".+\"))@"
             + "((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$")
@@ -32,8 +40,20 @@ public class Emprestimo implements ValidableModel {
     private String contacto;
 
     private Boolean isCurrent;
+
     @Column(nullable = false, name = "total_obras")
     private int totalObras;
+
+    private LocalDate dataDevolucao;
+
+    @Column(name = "multa")
+    private int multa;
+
+    @Transient
+    private Long[] obrasIds;
+
+    @OneToMany(mappedBy = "emprestimo", fetch = FetchType.LAZY)
+    private List<ItemEmprestimo> itens;
 
     public Emprestimo(String utente, String contacto, String email) {
         this.utente = utente;

@@ -1,6 +1,5 @@
 package com.pete.bibliogere.security;
 
-
 import com.pete.bibliogere.security.filter.JwtExceptionHandlerFilter;
 import com.pete.bibliogere.security.filter.JwtRequestFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,20 +16,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private JwtExceptionHandlerFilter jwtExceptionHandlerFilter;
+
     @Bean
     public JwtRequestFilter jwtRequestFilter() {
         return new JwtRequestFilter();
     }
-
-    @Autowired
-    private JwtExceptionHandlerFilter jwtExceptionHandlerFilter;
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
@@ -40,29 +38,40 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity httpSecurity) throws Exception {
 
-        final String allowedMathers[] = { "/api/v1/admin/**", "/api/v1/utilizador/entrar", "/api/v1/utilizador/refresh", "/api/v1/localizacoes/**", "/api/v1/estantes**", "/api/v1/questoes", };
+        final String[] allowedMatchers = {
+                "/",
+                "/api/v1/utilizador/entrar",
+                "/api/v1/utilizador/refresh",
+                "/api/v1/localizacoes/**",
+                "/api/v1/estantes/**",
+                "/api/v1/questoes",
+                "/api/v1/obras",
+                // Swagger/OpenAPI endpoints
+                "/swagger-ui/**",
+                "/swagger-ui.html",
+                "/v3/api-docs/**",
+                "/swagger-resources/**",
+                "/webjars/**"
+        };
 
-        final String[] adminMatchers = {"/api/v1/adminw/**"};
+        final String[] adminMatchers = {"/api/v1/admin/**"};
 
-        final String[] adminAndAtendenteMatchers = {"/api/v1/obra/**", "/api/v1/obras/",  "/api/v1/tipos"};
+        final String[] adminAndAtendenteMatchers = {
+                "/api/v1/obra/**",
+                "/api/v1/obras/",
+                "/api/v1/tipos",
+                "/api/v1/utilizadores"
+        };
 
-        final String[] atendenteMatchers = { "/api/v1/atendente/**"};
-
+        final String[] atendenteMatchers = {"/api/v1/atendente/**"};
 
         httpSecurity.csrf().disable()
                 .authorizeRequests()
-                .antMatchers(allowedMathers)
-                .permitAll()
-                .and()
-                .authorizeRequests()
-                .antMatchers(adminMatchers)
-                .hasRole("ADMIN")
-                .antMatchers(atendenteMatchers)
-                .hasRole("ATENDENTE")
-                .antMatchers(adminAndAtendenteMatchers)
-                .hasAnyRole("ATENDENTE", "ADMIN")
-                .anyRequest()
-                .authenticated()
+                .antMatchers(allowedMatchers).permitAll()
+                .antMatchers(adminMatchers).hasRole("ADMIN")
+                .antMatchers(atendenteMatchers).hasRole("ATENDENTE")
+                .antMatchers(adminAndAtendenteMatchers).hasAnyRole("ATENDENTE", "ADMIN")
+                .anyRequest().authenticated()
                 .and()
                 .exceptionHandling()
                 .authenticationEntryPoint(authenticationEntryPoint())
@@ -70,12 +79,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-
-        // Enabled cors
+        // Enable CORS
         httpSecurity.cors();
 
-        httpSecurity.addFilterBefore(jwtRequestFilter(), UsernamePasswordAuthenticationFilter.class);
-        httpSecurity.addFilterBefore(jwtExceptionHandlerFilter, JwtRequestFilter.class);
+        // CORRECTED: Both filters added before UsernamePasswordAuthenticationFilter
+        // This maintains the correct order: JwtExceptionHandler → JwtRequest → UsernamePassword
+        JwtRequestFilter jwtRequestFilterInstance = jwtRequestFilter();
+        httpSecurity.addFilterBefore(jwtExceptionHandlerFilter, UsernamePasswordAuthenticationFilter.class);
+        httpSecurity.addFilterBefore(jwtRequestFilterInstance, UsernamePasswordAuthenticationFilter.class);
     }
 
     @Bean
@@ -93,5 +104,4 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     public AuthenticationEntryPoint authenticationEntryPoint() {
         return new CustomAuthenticationEntryPoint();
     }
-
 }

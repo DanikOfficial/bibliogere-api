@@ -12,6 +12,7 @@ import com.pete.bibliogere.services.EstanteService;
 import com.pete.bibliogere.services.TipoEstanteService;
 import com.pete.bibliogere.utils.ReusableEntityOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -123,7 +124,7 @@ public class EstanteServiceImpl implements EstanteService {
 
     @Override
     public List<Estante> listarEstantes() {
-        return estanteRepositorio.findAll();
+        return estanteRepositorio.findFirst20ByIsDeletedIsFalseOrderByCodigoDesc(PageRequest.of(0, 20)).getContent();
     }
 
     @Override

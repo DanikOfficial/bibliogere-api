@@ -1,15 +1,12 @@
 package com.pete.bibliogere.controller;
 
-import com.pete.bibliogere.api.ApiResponseObject;
 import com.pete.bibliogere.dto.ItemEmprestimoDTO;
-import com.pete.bibliogere.modelo.ItemEmprestimo;
 import com.pete.bibliogere.services.impl.ItemEmprestimoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -18,16 +15,17 @@ public class ItemEmprestimoRestController {
     @Autowired
     private ItemEmprestimoService service;
 
-    @PostMapping(value = "/atendente/emprestimo/{codigoEmprestimo}/itens",
-            produces = "application/json",
-            consumes = "application/json")
-    public ResponseEntity<List<ItemEmprestimoDTO>> registarItens(@PathVariable("codigoEmprestimo") Long codigoEmprestimo,
-                                                             @RequestBody Long[] codigosObras) {
-
-        List<ItemEmprestimoDTO> itensEmprestimos = service.registarItens(codigosObras, codigoEmprestimo);
-
-        return ResponseEntity.ok(itensEmprestimos);
-    }
+    // This needs a refactor
+//    @PostMapping(value = "/atendente/emprestimo/{codigoEmprestimo}/itens",
+//            produces = "application/json",
+//            consumes = "application/json")
+//    public ResponseEntity<List<ItemEmprestimoDTO>> registarItens(@PathVariable("codigoEmprestimo") Long codigoEmprestimo,
+//                                                             @RequestBody Long[] codigosObras) {
+//
+//        List<ItemEmprestimo> itensEmprestimos = service.registarItens(codigosObras, codigoEmprestimo);
+//
+//        return ResponseEntity.ok(itensEmprestimos);
+//    }
 
     @GetMapping(value = "/atendente/emprestimo/{codigoEmprestimo}/itens", produces = "application/json")
     public ResponseEntity<List<ItemEmprestimoDTO>> getEmprestimoItens(
@@ -47,12 +45,13 @@ public class ItemEmprestimoRestController {
         return ResponseEntity.ok(id);
     }
 
-    @PatchMapping(value = "/atendente/emprestimo/{codigoEmprestimo}/itens", produces = "application/json")
-    public ResponseEntity<List<Long>> devolverItens(
-            @PathVariable("codigoEmprestimo") Long codigoEmprestimo) {
-
-        List<Long> ids = service.devolverItens(codigoEmprestimo);
-
-        return ResponseEntity.ok(ids);
-    }
+    // This needs a refactor
+//    @PatchMapping(value = "/atendente/emprestimo/{codigoEmprestimo}/itens", produces = "application/json")
+//    public ResponseEntity<List<Long>> devolverItens(
+//            @PathVariable("codigoEmprestimo") Long codigoEmprestimo) {
+//
+//        List<Long> ids = service.devolverItens(codigoEmprestimo);
+//
+//        return ResponseEntity.ok(ids);
+//    }
 }

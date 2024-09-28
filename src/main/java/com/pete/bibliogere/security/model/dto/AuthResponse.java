@@ -1,5 +1,6 @@
 package com.pete.bibliogere.security.model.dto;
 
+import com.pete.bibliogere.dto.UserQuestoesResponse;
 import com.pete.bibliogere.modelo.Permissao;
 import com.pete.bibliogere.modelo.Utilizador;
 import lombok.Data;
@@ -17,6 +18,8 @@ public class AuthResponse {
 
     private Collection<Permissao> permissoes;
 
+    private UserQuestoesResponse questoes;
+
     private String token;
 
     public AuthResponse(Utilizador utilizador, String token) {
@@ -25,6 +28,10 @@ public class AuthResponse {
         this.nome = utilizador.getNome();
         this.permissoes = utilizador.getPermissoes();
         this.token = token;
+
+        if (utilizador.getQuestoesSeguranca() != null) {
+            questoes = new UserQuestoesResponse(utilizador.getQuestoesSeguranca());
+        }
     }
 
 }

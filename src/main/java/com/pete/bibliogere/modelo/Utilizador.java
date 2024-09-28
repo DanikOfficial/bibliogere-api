@@ -26,7 +26,6 @@ public abstract class Utilizador {
 
     @Column(nullable = false, unique = true)
     @NotBlank(message = "O utilizador é obrigatório!")
-    @NonNull
     private String username;
 
     @Column(nullable = false)
@@ -35,9 +34,10 @@ public abstract class Utilizador {
 
     private Boolean enabled;
 
+    private Boolean isFirstLogin;
+
     @Column(nullable = false, unique = true)
     @NotBlank(message = "O nome do utilizador é obrigatório!")
-    @NonNull
     private String nome;
 
     @ManyToMany(targetEntity = Permissao.class, fetch = FetchType.LAZY)
@@ -58,5 +58,12 @@ public abstract class Utilizador {
         this.nome = nome;
     }
 
-
+    public Utilizador(@NotBlank(message = "O utilizador é obrigatório!") @NonNull String username,
+                      Boolean active,
+                      @NotBlank(message = "O nome do utilizador é obrigatório!") @NonNull String nome) {
+        super();
+        this.username = username;
+        this.enabled = active;
+        this.nome = nome;
+    }
 }

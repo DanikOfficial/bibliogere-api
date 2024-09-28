@@ -1,7 +1,10 @@
 package com.pete.bibliogere.services.impl;
 
 import com.pete.bibliogere.dto.EmprestimoDTO;
+import com.pete.bibliogere.dto.EmprestimoReadDTO;
+import com.pete.bibliogere.dto.FindBetweenDatesRequest;
 import com.pete.bibliogere.modelo.Emprestimo;
+import com.pete.bibliogere.modelo.ItemEmprestimo;
 import com.pete.bibliogere.modelo.enumeracao.Quantidade;
 import com.pete.bibliogere.modelo.excepcoes.EmprestimoAlreadyExistsException;
 import com.pete.bibliogere.modelo.excepcoes.EmprestimoNotFoundException;
@@ -13,16 +16,21 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.*;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class EmprestimoServiceImpl implements EmprestimoService {
 
     @Autowired
     private EmprestimoRepositorio repositorio;
+
+    @Autowired
+    private ItemEmprestimoService itemEmprestimoService;
 
     @PersistenceContext
     private EntityManager em;
@@ -34,16 +42,24 @@ public class EmprestimoServiceImpl implements EmprestimoService {
     public EmprestimoDTO registar(Emprestimo emprestimo) {
 
         emprestimo.setIsCurrent(Boolean.TRUE);
+        emprestimo.setCreatedAt(LocalDate.now());
+        emprestimo.setDataDevolucao(LocalDate.now().plusDays(2));
+        emprestimo.setMulta(0);
 
         handleExistsCreation(emprestimo);
 
-        return Optional.of(repositorio.save(emprestimo)).map(EmprestimoDTO::new).get();
+        Emprestimo savedEmprestimo = repositorio.save(emprestimo);
+
+        List<ItemEmprestimo> itens = itemEmprestimoService.registarItens(emprestimo.getObrasIds(), savedEmprestimo.getCodigo());
+
+        savedEmprestimo.setItens(itens);
+
+        return new EmprestimoDTO(savedEmprestimo);
     }
 
     @Override
     @Transactional
-    public EmprestimoDTO atualizar(Map<Object, Object> fields,
-                                   Long codigoEmprestimo) {
+    public EmprestimoDTO atualizar(Map<Object, Object> fields, Long codigoEmprestimo) {
 
         Emprestimo emprestimo = pesquisarEmprestimoPorCodigo(codigoEmprestimo);
 
@@ -53,7 +69,7 @@ public class EmprestimoServiceImpl implements EmprestimoService {
 
         handleExistsUpdate(emprestimo);
 
-        return Optional.of(emprestimo).map(EmprestimoDTO::new).get();
+        return new EmprestimoDTO(emprestimo);
     }
 
     @Override
@@ -61,46 +77,47 @@ public class EmprestimoServiceImpl implements EmprestimoService {
     public EmprestimoDTO devolver(Long codigoEmprestimo) {
         Emprestimo emprestimo = pesquisarEmprestimoPorCodigo(codigoEmprestimo);
 
+        itemEmprestimoService.devolverItens(emprestimo);
+
         emprestimo.setTotalObras(0);
         emprestimo.setIsCurrent(Boolean.FALSE);
+        emprestimo.setDataDevolucao(LocalDate.now());
 
-        Query query = em.createNativeQuery("UPDATE itens_emprestimo " +
-                "SET situacao = 'Devolvido' " +
-                "WHERE codigo_emprestimo = :codigoEmprestimo AND situacao = 'Activo' ");
-        query.setParameter("codigoEmprestimo", codigoEmprestimo);
-        query.executeUpdate();
-
-        return Optional.of(emprestimo).map(EmprestimoDTO::new).get();
+        return new EmprestimoDTO(emprestimo);
     }
 
     @Override
     public Map<String, Object> pesquisarEmprestimosPaging(String utente, int page) {
-        Page<EmprestimoDTO> results = repositorio.pesquisarEmprestimosPaging(PageRequest.of(page, 30),
-                utente.toUpperCase().trim());
+        Page<EmprestimoDTO> results = repositorio.pesquisarEmprestimosPaging(PageRequest.of(page, 30), utente.toUpperCase().trim());
 
         return reusable.buildDataWithPaging(results, Emprestimo.class);
     }
 
     @Override
     public Emprestimo pesquisarEmprestimoPorCodigo(Long codigo) {
-        Emprestimo emprestimo;
+        return repositorio.findWithItensByCodigoAndIsCurrent(codigo, true).orElseThrow(() -> new EmprestimoNotFoundException("O codigo do emprestimo digitado não existe "));
+    }
 
-        try {
-            TypedQuery<Emprestimo> typedQuery = em.createQuery("SELECT e FROM emprestimos e WHERE e.codigo = :codigo",
-                    Emprestimo.class);
-            typedQuery.setParameter("codigo", codigo);
-            emprestimo = typedQuery.getSingleResult();
-
-            return emprestimo;
-        } catch (NoResultException ex) {
-            throw new EmprestimoNotFoundException("O empréstimo digitado não existe!");
-        }
-
+    @Override
+    public List<EmprestimoReadDTO> pesquisarEmprestimosLikeUtente(String utente) {
+        return repositorio.pesquisarEmprestimos(utente);
     }
 
     @Override
     public EmprestimoDTO findEmprestimoByCodigo(Long codigo) {
-        return Optional.of(pesquisarEmprestimoPorCodigo(codigo)).map(EmprestimoDTO::new).get();
+        Emprestimo emprestimo = repositorio.findWithItensByCodigoAndIsCurrent(codigo, true).orElseThrow(() -> new EmprestimoNotFoundException("O codigo do emprestimo digitado não existe "));
+        return new EmprestimoDTO((emprestimo));
+    }
+
+    @Override
+    public EmprestimoDTO findEmprestimoByUtente(String codigoUtente) {
+        Emprestimo emprestimo = repositorio.findByUtenteIgnoreCaseAndIsCurrent(codigoUtente, true).orElseThrow(() -> new EmprestimoNotFoundException("O utente digitado não existe!"));
+        return new EmprestimoDTO(emprestimo);
+    }
+
+    @Override
+    public List<EmprestimoDTO> findEmprestimosBetween(FindBetweenDatesRequest datesDTO) {
+        return null;
     }
 
     @Override
@@ -117,7 +134,6 @@ public class EmprestimoServiceImpl implements EmprestimoService {
             default:
                 break;
         }
-
     }
 
     @Override
@@ -142,12 +158,9 @@ public class EmprestimoServiceImpl implements EmprestimoService {
 
     private void handleExistsCreation(Emprestimo emprestimo) {
         final String utente = emprestimo.getUtente().trim();
-        final String countQuery = "SELECT COUNT(e) FROM emprestimos e " +
-                "WHERE UPPER(e.utente) = UPPER(:utente) AND e.isCurrent = TRUE";
+        final String countQuery = "SELECT COUNT(e) FROM emprestimos e " + "WHERE UPPER(e.utente) = UPPER(:utente) AND e.isCurrent = TRUE";
 
-        Long total = (Long) em.createQuery(countQuery)
-                .setParameter("utente", utente)
-                .getSingleResult();
+        Long total = (Long) em.createQuery(countQuery).setParameter("utente", utente).getSingleResult();
 
         final String message = "Já existe um empréstimo registado com informação deste utente";
 
@@ -159,15 +172,9 @@ public class EmprestimoServiceImpl implements EmprestimoService {
         final String countQuery = "SELECT COUNT(e) FROM emprestimos e WHERE (e.codigo <> :codigo) AND (UPPER(e.utente) = UPPER(:utente))";
 
 
-        Long total = (Long) em.createQuery(countQuery)
-                .setParameter("utente", utente)
-                .setParameter("codigo", emprestimo.getCodigo())
-                .getSingleResult();
+        Long total = (Long) em.createQuery(countQuery).setParameter("utente", utente).setParameter("codigo", emprestimo.getCodigo()).getSingleResult();
 
         final String message = "Já existe um empréstimo registado com informação deste utente";
         if (total.intValue() > 0) throw new EmprestimoAlreadyExistsException(message);
-
-
     }
-
 }

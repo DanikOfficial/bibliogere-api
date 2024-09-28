@@ -14,11 +14,13 @@ public class UtilizadorDTO {
 
     private Boolean isActive;
 
+    private Boolean isFirstLogin;
+
     public UtilizadorDTO(Utilizador utilizador) {
         this.codigo = utilizador.getCodigo();
         this.username = utilizador.getUsername();
         this.nome = utilizador.getNome();
         this.isActive = utilizador.getEnabled();
+        this.isFirstLogin = utilizador.getIsFirstLogin();
     }
-
 }

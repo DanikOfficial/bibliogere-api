@@ -13,5 +13,4 @@ public interface PermissaoService {
     Permissao pesquisarPermissaoPorNome(String nome);
 
     List<Permissao> listarTodasPermissoes();
-
 }

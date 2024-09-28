@@ -11,9 +11,14 @@ import javax.persistence.*;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.time.LocalDate;
 
 @Entity(name = "obras")
-@Table(name = "obras")
+@Table(name = "obras",
+        indexes = {
+                @Index(name = "idx_obras_created_at", columnList = "createdAt")
+        }
+    )
 @Inheritance(strategy = InheritanceType.JOINED)
 @Data
 @NoArgsConstructor
@@ -52,7 +57,7 @@ public abstract class Obra implements GenericModel, ValidableModel {
 
     @Column(nullable = false, name = "quantidade_inicial")
     @Min(value = 0, message = "A quantidade não pode ser menor que {value}!")
-    @NotNull(message = "O quantidade é obrigatória!")
+    @NotNull(message = "A quantidade é obrigatória!")
     private Integer quantidadeInicial;
 
     @Column(nullable = false, name = "quantidade_atual")
@@ -69,7 +74,15 @@ public abstract class Obra implements GenericModel, ValidableModel {
     @Column(name = "localizacao")
     private String localizacaoDesignacao;
 
+    @Transient
+    private Long codigoLocalizacao;
+
+    @Transient
+    private Long codigoEstante;
+
     private String tipoObra;
+
+    private LocalDate createdAt;
 
     //@JsonIgnore
     @ManyToOne(optional = true, fetch = FetchType.LAZY)
