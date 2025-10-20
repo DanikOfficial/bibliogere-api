@@ -3,7 +3,7 @@ package com.pete.bibliogere.dto;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 @EqualsAndHashCode(callSuper = true)
 @Data

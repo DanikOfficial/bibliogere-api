@@ -113,8 +113,13 @@ public class BibliogereEntityInitializer {
             permissaoService.inicializarPermissoes(permissoes);
 
             Gerente gerente = new Gerente("admin", "admin", Boolean.TRUE, "Administrador");
+            gerente.setIsDeleted(Boolean.FALSE);
+            gerente.setIsFirstLogin(Boolean.FALSE);
+
 
             Atendente atendente = new Atendente("atendente", "admin", Boolean.TRUE, "Atendente");
+            atendente.setIsDeleted(Boolean.FALSE);
+            atendente.setIsFirstLogin(Boolean.FALSE);
 
             Permissao permissaoGerente = permissaoService.pesquisarPermissaoPorNome("ROLE_ADMIN");
             Permissao atendentePermission = permissaoService.pesquisarPermissaoPorNome("ROLE_ATENDENTE");

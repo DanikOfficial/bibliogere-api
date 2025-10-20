@@ -4,9 +4,13 @@ import com.pete.bibliogere.security.excepcoes.ExpiredSessionException;
 import com.pete.bibliogere.security.jwt.Token;
 import com.pete.bibliogere.security.service.TokenProviderService;
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -23,16 +27,22 @@ public class TokenProviderServiceImpl implements TokenProviderService {
     @Value("${jwt.refreshTokenDuration}")
     private Long refreshTokenExpirationMsec;
 
+    // Generate secure key from secret
+    private SecretKey getSigningKey() {
+        byte[] keyBytes = tokenSecret.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
     @Override
     public String generateAccessToken(String subject) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + accessTokenExpirationMsec);
 
         return Jwts.builder()
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS512, tokenSecret)
+                .subject(subject)                    // Changed from setSubject
+                .issuedAt(now)                       // Changed from setIssuedAt
+                .expiration(expiryDate)              // Changed from setExpiration
+                .signWith(getSigningKey(), Jwts.SIG.HS512)  // New signature method
                 .compact();
     }
 
@@ -42,10 +52,10 @@ public class TokenProviderServiceImpl implements TokenProviderService {
         Date expiryDate = new Date(now.getTime() + refreshTokenExpirationMsec);
 
         String refreshToken = Jwts.builder()
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS512, tokenSecret)
+                .subject(subject)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey(), Jwts.SIG.HS512)
                 .compact();
 
         return new Token(
@@ -70,7 +80,10 @@ public class TokenProviderServiceImpl implements TokenProviderService {
     @Override
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(tokenSecret).parseClaimsJws(token);
+            Jwts.parser()
+                    .verifyWith(getSigningKey())     // Changed from setSigningKey
+                    .build()
+                    .parseSignedClaims(token);       // Changed from parseClaimsJws
             return true;
         } catch (ExpiredJwtException ex) {
             throw new ExpiredSessionException("A sessão expirou!");
@@ -83,8 +96,9 @@ public class TokenProviderServiceImpl implements TokenProviderService {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .setSigningKey(tokenSecret)
-                .parseClaimsJws(token)
-                .getBody();
+                .verifyWith(getSigningKey())         // Changed from setSigningKey
+                .build()
+                .parseSignedClaims(token)            // Changed from parseClaimsJws
+                .getPayload();                        // Changed from getBody
     }
 }

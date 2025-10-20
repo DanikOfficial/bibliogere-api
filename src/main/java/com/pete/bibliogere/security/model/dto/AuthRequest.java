@@ -3,7 +3,7 @@ package com.pete.bibliogere.security.model.dto;
 import lombok.Builder;
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 @Data
 @Builder

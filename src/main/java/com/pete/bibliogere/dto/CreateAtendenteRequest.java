@@ -3,10 +3,9 @@ package com.pete.bibliogere.dto;
 import lombok.Builder;
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 @Data
-@Builder
 public class CreateAtendenteRequest {
     @NotBlank(message = "O utilizador é obrigatório!")
     private String username;

@@ -2,41 +2,51 @@ package com.pete.bibliogere.security;
 
 import com.pete.bibliogere.security.filter.JwtExceptionHandlerFilter;
 import com.pete.bibliogere.security.filter.JwtRequestFilter;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.pete.bibliogere.security.service.TokenProviderService;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+@Configuration
 @EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class SecurityConfig {
 
-    @Autowired
-    private UserDetailsService userDetailsService;
+    private final UserDetailsService userDetailsService;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
 
-    @Autowired
-    private JwtExceptionHandlerFilter jwtExceptionHandlerFilter;
+    public SecurityConfig(UserDetailsService userDetailsService,
+                          AuthenticationEntryPoint authenticationEntryPoint) {
+        this.userDetailsService = userDetailsService;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+    }
 
     @Bean
-    public JwtRequestFilter jwtRequestFilter() {
-        return new JwtRequestFilter();
+    public JwtRequestFilter jwtRequestFilter(UserDetailsService userDetailsService,
+                                             TokenProviderService tokenProviderService) {
+        return new JwtRequestFilter(userDetailsService, tokenProviderService);
     }
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService);
+    @Bean
+    public JwtExceptionHandlerFilter jwtExceptionHandlerFilter() {
+        return new JwtExceptionHandlerFilter();
     }
 
-    @Override
-    protected void configure(HttpSecurity httpSecurity) throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   JwtExceptionHandlerFilter jwtExceptionHandlerFilter,
+                                                   JwtRequestFilter jwtRequestFilter) throws Exception {
 
         final String[] allowedMatchers = {
                 "/",
@@ -46,7 +56,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 "/api/v1/estantes/**",
                 "/api/v1/questoes",
                 "/api/v1/obras",
-                // Swagger/OpenAPI endpoints
                 "/swagger-ui/**",
                 "/swagger-ui.html",
                 "/v3/api-docs/**",
@@ -55,38 +64,38 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         };
 
         final String[] adminMatchers = {"/api/v1/admin/**"};
-
         final String[] adminAndAtendenteMatchers = {
                 "/api/v1/obra/**",
                 "/api/v1/obras/",
                 "/api/v1/tipos",
                 "/api/v1/utilizadores"
         };
-
         final String[] atendenteMatchers = {"/api/v1/atendente/**"};
 
-        httpSecurity.csrf().disable()
-                .authorizeRequests()
-                .antMatchers(allowedMatchers).permitAll()
-                .antMatchers(adminMatchers).hasRole("ADMIN")
-                .antMatchers(atendenteMatchers).hasRole("ATENDENTE")
-                .antMatchers(adminAndAtendenteMatchers).hasAnyRole("ATENDENTE", "ADMIN")
-                .anyRequest().authenticated()
-                .and()
-                .exceptionHandling()
-                .authenticationEntryPoint(authenticationEntryPoint())
-                .and()
-                .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+        http
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> {}) // use CorsConfigurationSource bean if defined
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(allowedMatchers).permitAll()
+                        .requestMatchers(adminMatchers).hasRole("ADMIN")
+                        .requestMatchers(atendenteMatchers).hasRole("ATENDENTE")
+                        .requestMatchers(adminAndAtendenteMatchers).hasAnyRole("ATENDENTE", "ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtExceptionHandlerFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
-        // Enable CORS
-        httpSecurity.cors();
+        return http.build();
+    }
 
-        // CORRECTED: Both filters added before UsernamePasswordAuthenticationFilter
-        // This maintains the correct order: JwtExceptionHandler → JwtRequest → UsernamePassword
-        JwtRequestFilter jwtRequestFilterInstance = jwtRequestFilter();
-        httpSecurity.addFilterBefore(jwtExceptionHandlerFilter, UsernamePasswordAuthenticationFilter.class);
-        httpSecurity.addFilterBefore(jwtRequestFilterInstance, UsernamePasswordAuthenticationFilter.class);
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
     }
 
     @Bean
@@ -95,13 +104,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    @Override
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
-    }
-
-    @Bean
-    public AuthenticationEntryPoint authenticationEntryPoint() {
-        return new CustomAuthenticationEntryPoint();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
     }
 }
