@@ -18,10 +18,12 @@ import javax.validation.constraints.NotBlank;
 @NoArgsConstructor
 public class Atendente extends Utilizador {
 
-    public Atendente(@NotBlank(message = "O utilizador é obrigatório!") @NonNull String username,
-                     @NotBlank(message = "Password") String password, Boolean active,
-                     @NotBlank(message = "O nome do utilizador é obrigatório!") @NonNull String nome) {
+    public Atendente(@NotBlank(message = "O utilizador é obrigatório!") @NonNull String username, String password, Boolean active, @NotBlank(message = "O nome do utilizador é obrigatório!") @NonNull String nome) {
         super(username, password, active, nome);
+    }
+
+    public Atendente(@NotBlank(message = "O utilizador é obrigatório!") @NonNull String username, Boolean active, @NotBlank(message = "O nome do utilizador é obrigatório!") @NonNull String nome) {
+        super(username, active, nome);
     }
 
 }

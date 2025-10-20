@@ -1,6 +1,10 @@
 package com.pete.bibliogere.services.impl;
 
 import com.pete.bibliogere.api.ApiResponseObject;
+import com.pete.bibliogere.dto.*;
+import com.pete.bibliogere.modelo.Atendente;
+import com.pete.bibliogere.modelo.Permissao;
+import com.pete.bibliogere.modelo.RoleConstants;
 import com.pete.bibliogere.modelo.Utilizador;
 import com.pete.bibliogere.modelo.dto.UtilizadorDTO;
 import com.pete.bibliogere.repositorios.UtilizadorRepositorio;
@@ -13,6 +17,7 @@ import com.pete.bibliogere.security.model.dto.AuthResponse;
 import com.pete.bibliogere.security.model.dto.RefreshResponse;
 import com.pete.bibliogere.security.service.TokenProviderService;
 import com.pete.bibliogere.security.util.CookieUtil;
+import com.pete.bibliogere.services.PermissaoService;
 import com.pete.bibliogere.services.UtilizadorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -26,18 +31,19 @@ import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.util.HashMap;
+import javax.transaction.Transactional;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class UtilizadorServiceImpl implements UtilizadorService {
 
     @Autowired
+    PermissaoService permissaoService;
+    @Autowired
     private UtilizadorRepositorio repositorio;
-
     @Autowired
     private TokenProviderService tokenProvider;
-
     @Autowired
     private CookieUtil cookieUtil;
 
@@ -57,16 +63,65 @@ public class UtilizadorServiceImpl implements UtilizadorService {
     }
 
     @Override
+    public Utilizador pesquisaPorCodigo(Long codigo) {
+        return repositorio.findByCodigo(codigo).orElseThrow(() -> new UtilizadorNotFoundException("O utilizador digitado não existe: " + codigo));
+    }
+
+    @Override
     public UtilizadorDTO registar(Utilizador utilizador) {
         return null;
     }
 
     @Override
-    public void criaAdmin(Utilizador utilizador) {
+    public UtilizadorDTO criaAdmin(Utilizador utilizador) {
 
         utilizador.setPassword(encoder.encode(utilizador.getPassword()));
 
+        Utilizador user = repositorio.save(utilizador);
+
+        return Optional.of(user).map(UtilizadorDTO::new).get();
+    }
+
+    @Override
+    public AtendenteInfo createAtendente(CreateAtendenteRequest request) {
+        Atendente atendente = new Atendente(request.getUsername(), encoder.encode("1234"), Boolean.TRUE, request.getNome());
+        atendente.setIsFirstLogin(Boolean.TRUE);
+        atendente.setEnabled(true);
+        Permissao atendentePermission = permissaoService.pesquisarPermissaoPorNome(RoleConstants.ROLE_ATENDENTE);
+        atendente.getPermissoes().add(atendentePermission);
+        atendente = repositorio.save(atendente);
+
+        return AtendenteInfo.builder().utilizador(request.getUsername()).nome(request.getNome()).isActive(atendente.getEnabled()).build();
+    }
+
+    @Override
+    public AuthResponse createPassword(CreatePasswordRequest request) {
+        Utilizador utilizador = pesquisaPorCodigo(request.getCodigoUtilizador());
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new CredenciaisInvalidasException("As senhas não coincidem");
+        }
+        utilizador.setPassword(encoder.encode(request.getNewPassword()));
+        utilizador = repositorio.save(utilizador);
+        return entrar(AuthRequest.builder().username(utilizador.getUsername()).password(request.getNewPassword()).build());
+    }
+
+    @Override
+    public SimpleResponse updatePassword(UpdatePasswordRequest request) {
+        Utilizador utilizador = pesquisaPorCodigo(request.getCodigoUtilizador());
+
+        if (!encoder.matches(request.getOldPassword(), utilizador.getPassword())) {
+            throw new CredenciaisInvalidasException("Senha inválida!");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new CredenciaisInvalidasException("As senhas não coincidem");
+        }
+
+        utilizador.setPassword(encoder.encode(request.getNewPassword()));
         repositorio.save(utilizador);
+
+        return SimpleResponse.builder().message("Senha atualizada com sucesso").build();
     }
 
     @Override
@@ -74,9 +129,8 @@ public class UtilizadorServiceImpl implements UtilizadorService {
         return null;
     }
 
-
     @Override
-    public ResponseEntity<Map<String, Object>> entrar(AuthRequest authRequest) {
+    public AuthResponse entrar(AuthRequest authRequest) {
         Utilizador utilizador = pesquisarPorUsername(authRequest.getUsername());
 
         try {
@@ -94,69 +148,11 @@ public class UtilizadorServiceImpl implements UtilizadorService {
 
         addRefreshTokenCookie(responseHeaders, newRefreshToken);
 
-
-        AuthResponse authResponse = new AuthResponse(utilizador, newAccessToken);
-
-        String message = "Autenticado com sucesso!";
-
-        Map<String, Object> res = new ApiResponseObject().buildLoginResponse(Boolean.FALSE, message, authResponse);
-
-
-        return ResponseEntity.ok().headers(responseHeaders).body(res);
+        return new AuthResponse(utilizador, newAccessToken);
     }
 
-//
-//    @Override
-//    public ResponseEntity<Map<String, Object>> entrar(AuthRequest authRequest, String accessToken,
-//                                                      String refreshToken) {
-//        Utilizador utilizador = pesquisarPorUsername(authRequest.getUsername());
-//
-//        try {
-//            authenticationManager.authenticate(
-//                    new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
-//        } catch (BadCredentialsException ex) {
-//            throw new CredenciaisInvalidasException("Utilizador/Senha inválida!");
-//        }
-//
-//        Boolean accessTokenValid = tokenProvider.validateToken(accessToken);
-//        Boolean refreshTokenValid = tokenProvider.validateToken(refreshToken);
-//
-//        HttpHeaders responseHeaders = new HttpHeaders();
-//
-//        Token newAccessToken;
-//        Token newRefreshToken;
-//
-//        if (!accessTokenValid && !refreshTokenValid) {
-//            newAccessToken = tokenProvider.generateAccessToken(utilizador.getUsername());
-//            newRefreshToken = tokenProvider.generateRefreshToken(utilizador.getUsername());
-//            addAccessTokenCookie(responseHeaders, newAccessToken);
-//            addRefreshTokenCookie(responseHeaders, newRefreshToken);
-//        }
-//
-//        if (!accessTokenValid && refreshTokenValid) {
-//            newAccessToken = tokenProvider.generateAccessToken(utilizador.getUsername());
-//            addAccessTokenCookie(responseHeaders, newAccessToken);
-//        }
-//
-//        if (accessTokenValid && refreshTokenValid) {
-//            newAccessToken = tokenProvider.generateAccessToken(utilizador.getUsername());
-//            newRefreshToken = tokenProvider.generateRefreshToken(utilizador.getUsername());
-//            addAccessTokenCookie(responseHeaders, newAccessToken);
-//            addRefreshTokenCookie(responseHeaders, newRefreshToken);
-//        }
-//
-//        AuthResponse authResponse = new AuthResponse(utilizador);
-//
-//        String message = "Autenticado com sucesso!";
-//
-//        Map<String, Object> res = new ApiResponseObject().response(Boolean.FALSE, message, authResponse, 200);
-//
-//
-//        return ResponseEntity.ok().headers(responseHeaders).body(res);
-//    }
-
     @Override
-    public ResponseEntity<Map<String, Object>> refresh( String refreshToken) {
+    public ResponseEntity<Map<String, Object>> refresh(String refreshToken) {
 
         boolean refreshTokenValid = tokenProvider.validateToken(refreshToken);
 

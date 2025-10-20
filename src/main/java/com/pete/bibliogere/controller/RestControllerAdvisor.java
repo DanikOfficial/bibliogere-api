@@ -3,12 +3,13 @@ package com.pete.bibliogere.controller;
 import com.pete.bibliogere.api.ApiResponseObject;
 import com.pete.bibliogere.modelo.excepcoes.*;
 import com.pete.bibliogere.security.excepcoes.CredenciaisInvalidasException;
-import com.pete.bibliogere.security.excepcoes.ExpiredSessionException;
 import com.pete.bibliogere.security.excepcoes.InvalidTokenException;
 import com.pete.bibliogere.security.excepcoes.UtilizadorNotFoundException;
 import com.pete.bibliogere.utils.CustomValidationException;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -69,7 +70,8 @@ public class RestControllerAdvisor extends ResponseEntityExceptionHandler {
             EmprestimoNotFoundException.class, ItemEmprestimoNotFoundException.class,
             ObraNotFoundException.class, EstanteNotFoundException.class,
             LocalizacaoNotFoundException.class, PermissaoNotFoundException.class,
-            TipoEstanteNotFoundException.class, UtilizadorNotFoundException.class
+            TipoEstanteNotFoundException.class, UtilizadorNotFoundException.class,
+            EstanteException.class, QuestoesSegurancaNotFoundException.class
     })
     public ResponseEntity<Object> handleNotFoundException(RuntimeException ex, WebRequest request) {
 
@@ -80,7 +82,7 @@ public class RestControllerAdvisor extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(value = {EmprestimoAlreadyExistsException.class, EstanteAlreadyExistsException.class,
             ItemEmprestimoAlreadyExistsException.class, LocalizacaoAlreadyExistsException.class,
-            ObraAlreadyExistsException.class, TipoEstanteAlreadyExistsException.class})
+            ObraAlreadyExistsException.class, TipoEstanteAlreadyExistsException.class, DuplicateQuestionException.class})
     public ResponseEntity<Object> handleAlreadyExistsException(RuntimeException ex, WebRequest request) {
 
         Map<String, Object> res = new ApiResponseObject().buildSimpleError(ex.getMessage(), "fail");
@@ -88,7 +90,7 @@ public class RestControllerAdvisor extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(res, HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler({ExpiredSessionException.class})
+    @ExceptionHandler({ExpiredJwtException.class})
     public ResponseEntity<Object> handleExpiredSessionException(RuntimeException ex, WebRequest request) {
 
         Map<String, Object> res = new ApiResponseObject().buildSimpleError(ex.getMessage(), "error", 401);
@@ -102,7 +104,9 @@ public class RestControllerAdvisor extends ResponseEntityExceptionHandler {
 
         Map<String, Object> res = new ApiResponseObject().buildSimpleError(ex.getMessage(), "error");
 
-        return new ResponseEntity<>(res, HttpStatus.FORBIDDEN);
-    }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
+        return new ResponseEntity<>(res, headers, HttpStatus.FORBIDDEN);
+    }
 }

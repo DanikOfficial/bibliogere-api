@@ -1,6 +1,8 @@
 package com.pete.bibliogere.modelo;
 
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
@@ -8,6 +10,7 @@ import javax.validation.constraints.NotBlank;
 @Entity(name = "questoes_seguranca")
 @Table(name = "questoes_seguranca")
 @Data
+@NoArgsConstructor
 public class QuestoesSeguranca {
 
     @Id

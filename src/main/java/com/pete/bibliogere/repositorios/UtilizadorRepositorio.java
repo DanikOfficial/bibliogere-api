@@ -10,7 +10,9 @@ import java.util.Optional;
 @Repository
 public interface UtilizadorRepositorio extends JpaRepository<Utilizador, Long> {
 
-    @EntityGraph(attributePaths = "permissoes", type = EntityGraph.EntityGraphType.FETCH)
+    @EntityGraph(attributePaths = {"permissoes", "questoesSeguranca"}, type = EntityGraph.EntityGraphType.FETCH)
     Optional<Utilizador> findByUsernameIgnoreCase(String name);
 
+    @EntityGraph(attributePaths = "questoesSeguranca", type = EntityGraph.EntityGraphType.FETCH)
+    Optional<Utilizador> findByCodigo(Long codigo);
 }

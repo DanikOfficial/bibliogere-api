@@ -1,6 +1,8 @@
 package com.pete.bibliogere.services.impl;
 
 import com.pete.bibliogere.dto.ItemEmprestimoDTO;
+import com.pete.bibliogere.modelo.Emprestimo;
+import com.pete.bibliogere.modelo.ItemEmprestimo;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -8,7 +10,7 @@ import java.util.List;
 @Service
 public interface ItemEmprestimoService {
 
-    List<ItemEmprestimoDTO> registarItens(Long[] codigosObras, Long codigoEmprestimo);
+    List<ItemEmprestimo> registarItens(Long[] codigosObras, Long codigoEmprestimo);
 
     List<ItemEmprestimoDTO> getEmprestimoItems(Long codigoEmprestimo);
 
@@ -16,7 +18,5 @@ public interface ItemEmprestimoService {
 
     Long devolverItem(Long codigo);
 
-    List<Long> devolverItens(Long codigoEmprestimo);
-
-
+    List<Long> devolverItens(Emprestimo emprestimo);
 }

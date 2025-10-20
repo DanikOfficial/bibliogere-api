@@ -20,6 +20,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,6 +65,8 @@ public class ObraServiceImpl implements ObraService {
 
         handleObraExists(obra);
 
+        obra.setCreatedAt(LocalDate.now());
+
         obra = repositorio.save(obra);
 
         estanteService.alteraTotal(Quantidade.AUMENTAR, obra.getEstante());
@@ -99,6 +103,10 @@ public class ObraServiceImpl implements ObraService {
 
         obra.setLocalizacaoDesignacao(localizacaoEncontrada.getDesignacao());
 
+        obra.setTipoObra(type);
+
+        obra.setCreatedAt(LocalDate.now());
+
         reusable.handleConstraintViolation(obra);
 
         handleObraExists(obra, obra.getCodigo());
@@ -113,7 +121,7 @@ public class ObraServiceImpl implements ObraService {
         Obra obra = pesquisarPorCodigo(codigo);
 
         BigInteger total = (BigInteger) em.createNativeQuery(
-                "SELECT COUNT(codigo_obra) FROM itens_emprestimo WHERE codigo_obra = :codigo AND is_devolvido = FALSE").setParameter(
+                "SELECT COUNT(codigo_obra) FROM itens_emprestimo WHERE codigo_obra = :codigo AND situacao = 'Activo'").setParameter(
                 "codigo", codigo).getSingleResult();
 
         if (total.intValue() > 0)
@@ -132,6 +140,11 @@ public class ObraServiceImpl implements ObraService {
     public Obra pesquisarPorCodigo(Long codigoObra) {
         return repositorio.findByCodigo(codigoObra).orElseThrow(
                 () -> new ObraNotFoundException("A obra digitada não existe"));
+    }
+
+    @Override
+    public List<Obra> pesquisarObras(String titulo) {
+        return repositorio.findByTituloContainingIgnoreCaseAndIsDeletedNot(titulo);
     }
 
     @Override
@@ -170,6 +183,11 @@ public class ObraServiceImpl implements ObraService {
     }
 
     @Override
+    public List<Obra> listarObras() {
+        return repositorio.findTop5ByIsDeletedIsFalseOrderByCodigoDesc();
+    }
+
+    @Override
     public void alteraQuantidade(Quantidade operacao, Obra obra) {
 
         switch (operacao) {
@@ -178,7 +196,7 @@ public class ObraServiceImpl implements ObraService {
                 break;
             case DIMINUIR:
                 if (obra.getQuantidadeAtual() < 1)
-                    throw new ObraException(("Impossível emprestar essa obra porque a quantidade é insuficiente"));
+                    throw new ObraException(("Impossível emprestar a obra com o titulo: " + obra.getTitulo() +" porque a quantidade é insuficiente"));
 
                 obra.setQuantidadeAtual(obra.getQuantidadeAtual() - 1);
                 break;
@@ -231,4 +249,24 @@ public class ObraServiceImpl implements ObraService {
 
     }
 
-}
+    @Override
+    public List<Obra> listarObrasPorPeriodo(LocalDate dataInicio, LocalDate dataFim) {
+        if (dataInicio == null || dataFim == null) {
+            throw new ObraException("As datas de início e fim são obrigatórias para o relatório.");
+        }
+
+        if (dataInicio.isAfter(dataFim)) {
+            throw new ObraException("A data de início não pode ser posterior à data final.");
+        }
+
+        List<Obra> obras = repositorio.findAllByCreatedAtBetweenAndIsDeletedFalse(dataInicio, dataFim);
+
+        if (obras.isEmpty()) {
+            throw new ObraNotFoundException("Nenhuma obra encontrada no período especificado.");
+        }
+
+        return obras;
+    }
+
+
+    }

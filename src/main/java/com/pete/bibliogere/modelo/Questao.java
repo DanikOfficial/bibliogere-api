@@ -1,6 +1,5 @@
 package com.pete.bibliogere.modelo;
 
-import io.micrometer.core.lang.NonNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -17,7 +16,6 @@ public class Questao {
     private Long codigo;
 
     @Column(nullable = false)
-    @NonNull
     private String nome;
 
     public Questao(String nome) {

@@ -45,87 +45,30 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
 
     @Override
     @Transactional
-    public List<ItemEmprestimoDTO> registarItens(Long[] codigosObras, Long codigoEmprestimo) {
+    public List<ItemEmprestimo> registarItens(Long[] codigosObras, Long codigoEmprestimo) {
 
         Emprestimo emprestimo = emprestimoService.pesquisarEmprestimoPorCodigo(codigoEmprestimo);
 
-        List<Obra> obras = Arrays.asList(codigosObras)
-                .stream()
-                .map(codigoObra -> obraService.pesquisarPorCodigo(codigoObra))
+        List<Obra> obras = Arrays.stream(codigosObras)
+                .map(obraService::pesquisarPorCodigo)
                 .collect(Collectors.toList());
-
-        List<ItemEmprestimo> itensEmprestimo = obras.parallelStream()
-                .map(obra -> new ItemEmprestimo(emprestimo, obra, "", SituacaoItemEmprestimo.Activo,
-                        LocalDate.now().plusDays(2),
-                        LocalDate.now()))
-                .collect(Collectors.toList());
-
 
         handleItensExists(Arrays.asList(codigosObras), codigoEmprestimo);
 
-        List<ItemEmprestimo> itensGravados = repositorio.saveAll(itensEmprestimo);
-
-        obras.forEach(obra -> {
-            handleObraQuantidade(Quantidade.DIMINUIR, obra);
-        });
-
+        obras.forEach(obra -> handleObraQuantidade(Quantidade.DIMINUIR, obra));
         handleEmprestimoQuantidade(Quantidade.AUMENTAR, emprestimo, obras.size());
 
-        ItemEmprestimo[] itens1 = itensGravados.stream().toArray(ItemEmprestimo[]::new);
+        // Create ItemEmprestimo and save
+        List<ItemEmprestimo> itensEmprestimo = obras.stream()
+                .map(obra -> new ItemEmprestimo(emprestimo, obra, "", SituacaoItemEmprestimo.Activo,
+                        LocalDate.now().plusDays(2), LocalDate.now()))
+                .collect(Collectors.toList());
 
-        ItemEmprestimo[] itens2 = itensEmprestimo.stream().toArray(ItemEmprestimo[]::new);
+        List<ItemEmprestimo> itensGravados = repositorio.saveAll(itensEmprestimo);
 
-        for (int i = 0; i < itens2.length; i++) {
-            itens2[i].setEmprestimo(emprestimo);
-            itens2[i].setObra(itens1[i].getObra());
-        }
-
-        List<ItemEmprestimoDTO> itens = Arrays.asList(itens2).parallelStream().map(ItemEmprestimoDTO::new).collect(
-                Collectors.toList());
-
-        return itens;
+       return itensGravados;
     }
-//
-//    @Override
-//    @Transactional
-//    public List<ItemEmprestimo> registarItens(Long[] codigosObras, Long codigoEmprestimo) {
-//
-//        Emprestimo emprestimo = emprestimoService.pesquisarEmprestimoPorCodigo(codigoEmprestimo);
-//
-//
-//        List<Obra> obras = Arrays.asList(codigosObras)
-//                .stream()
-//                .map(codigoObra -> obraService.pesquisarPorCodigo(codigoObra))
-//                .collect(Collectors.toList());
-//
-//        List<ItemEmprestimo> itensEmprestimo = obras.parallelStream()
-//                .map(obra -> new ItemEmprestimo(emprestimo, obra, "", SituacaoItemEmprestimo.Activo,
-//                        LocalDate.now().plusDays(2),
-//                        LocalDate.now()))
-//                .collect(Collectors.toList());
-//
-//        handleItensExists(Arrays.asList(codigosObras), codigoEmprestimo);
-//
-//        List<ItemEmprestimo> itensGravados = repositorio.saveAll(itensEmprestimo);
-//
-//        obras.forEach(obra -> {
-//            handleObraQuantidade(Quantidade.DIMINUIR, obra);
-//        });
-//
-//        handleEmprestimoQuantidade(Quantidade.AUMENTAR, emprestimo, obras.size());
-//
-//        ItemEmprestimo[] itens1 = itensGravados.stream().toArray(ItemEmprestimo[]::new);
-//
-//        ItemEmprestimo[] itens2 = itensEmprestimo.stream().toArray(ItemEmprestimo[]::new);
-//
-//        for (int i = 0; i < itens2.length; i++) {
-//            itens2[i].setEmprestimo(emprestimo);
-//            itens2[i].setObra(itens1[i].getObra());
-//        }
-//
-//
-//        return Arrays.asList(itens2);
-//    }
+
 
     @Override
     public List<ItemEmprestimoDTO> getEmprestimoItems(Long codigoEmprestimo) {
@@ -146,30 +89,6 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
 
         return itensDTO;
     }
-
-//
-//    @Override
-//    @Transactional
-//    public ItemEmprestimoDTO registarItem(Long codigoObra, Long codigoEmprestimo) {
-//
-//        Emprestimo emprestimo = emprestimoService.pesquisarEmprestimoPorCodigo(codigoEmprestimo);
-//
-//        Obra obra = obraService.pesquisarPorCodigo(codigoObra);
-//
-//        ItemEmprestimo itemEmprestimo = new ItemEmprestimo(emprestimo, obra, "", SituacaoItemEmprestimo.Activo,
-//                LocalDate.now().plusDays(2),
-//                LocalDate.now());
-//
-//        handleObraQuantidade(Quantidade.DIMINUIR, obra);
-//
-//        handleEmprestimoQuantidade(Quantidade.AUMENTAR, emprestimo, 1);
-//
-//        ItemEmprestimo itemGravado = repositorio.save(itemEmprestimo);
-//
-//        itemEmprestimo.setCodigo(itemGravado.getCodigo());
-//
-//        return Optional.of(itemEmprestimo).map(ItemEmprestimoDTO::new).get();
-//    }
 
     @Override
     @Transactional
@@ -207,19 +126,8 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
     }
 
     @Override
-    @Transactional
-    public List<Long> devolverItens(Long codigoEmprestimo) {
-
-        Emprestimo emprestimo = emprestimoService.pesquisarEmprestimoPorCodigo(codigoEmprestimo);
-
-        final String query = "SELECT i FROM itens_emprestimo i " +
-                "LEFT JOIN FETCH i.emprestimo ie " +
-                "LEFT JOIN FETCH i.obra " +
-                "WHERE ie.codigo = :codigo AND i.situacao.situacao = 'Activo'";
-
-        List<ItemEmprestimo> itens = em.createQuery(query, ItemEmprestimo.class)
-                .setParameter("codigo", codigoEmprestimo)
-                .getResultList();
+    public List<Long> devolverItens(Emprestimo emprestimo) {
+        List<ItemEmprestimo> itens = emprestimo.getItens();
 
         List<Long> ids = itens.stream().map(ItemEmprestimo::getCodigo).collect(Collectors.toList());
 

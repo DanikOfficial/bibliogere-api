@@ -25,6 +25,7 @@ public class ItemEmprestimo {
     @JoinColumn(name = "codigo_obra")
     private Obra obra;
 
+    @Transient
     private String atendente;
 
     @Enumerated(EnumType.STRING)
@@ -40,8 +41,7 @@ public class ItemEmprestimo {
     @Column(name = "data_devolvido")
     private LocalDate dataDevolvido;
 
-    public ItemEmprestimo(Emprestimo emprestimo, Obra obra, String atendente,
-                          SituacaoItemEmprestimo situacao, LocalDate dataDevolucao, LocalDate dataRealizacao) {
+    public ItemEmprestimo(Emprestimo emprestimo, Obra obra, String atendente, SituacaoItemEmprestimo situacao, LocalDate dataDevolucao, LocalDate dataRealizacao) {
         this.emprestimo = emprestimo;
         this.obra = obra;
         this.atendente = atendente;
@@ -51,23 +51,8 @@ public class ItemEmprestimo {
     }
 
 
-    public ItemEmprestimo(Obra obra, String atendente,
-                          SituacaoItemEmprestimo situacao, LocalDate dataDevolucao, LocalDate dataRealizacao) {
-        this.obra = obra;
-        this.atendente = atendente;
-        this.situacao = situacao;
-        this.dataDevolucao = dataDevolucao;
-        this.dataRealizacao = dataRealizacao;
-    }
-
     @Override
     public String toString() {
-        return "ItemEmprestimo{" +
-                "codigo=" + codigo +
-                ", atendente='" + atendente + '\'' +
-                ", dataDevolucao=" + dataDevolucao +
-                ", dataRealizacao=" + dataRealizacao +
-                ", dataDevolvido=" + dataDevolvido +
-                '}';
+        return "ItemEmprestimo{" + "codigo=" + codigo + ", atendente='" + atendente + '\'' + ", dataDevolucao=" + dataDevolucao + ", dataRealizacao=" + dataRealizacao + ", dataDevolvido=" + dataDevolvido + '}';
     }
 }

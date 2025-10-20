@@ -1,6 +1,7 @@
 package com.pete.bibliogere;
 
 import com.pete.bibliogere.modelo.*;
+import com.pete.bibliogere.modelo.dto.UtilizadorDTO;
 import com.pete.bibliogere.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -27,6 +28,9 @@ public class BibliogereEntityInitializer {
 
     @Autowired
     private UtilizadorService utilizadorService;
+
+    @Autowired
+    private QuestoesSegurancaService questoesSegurancaService;
 
     @Bean
     CommandLineRunner commandLineRunner() {
@@ -75,7 +79,6 @@ public class BibliogereEntityInitializer {
             TipoEstante tipoEstante2 = new TipoEstante("Livro", Boolean.TRUE, Boolean.FALSE);
 
             tipoEstanteService.registarEstantes(Arrays.asList(tipoEstante1, tipoEstante2));
-
         }
     }
 
@@ -95,32 +98,43 @@ public class BibliogereEntityInitializer {
                     localizacao5, localizacao6);
 
             localizacaoService.registarLocalizacoes(localizacoes);
-
         }
     }
 
     public void inicializaPermissoesEAdmin() {
-
         if (permissaoService.listarTodasPermissoes().isEmpty()) {
 
-            Permissao admin = new Permissao("ROLE_ADMIN");
+            Permissao permissaoAdmin = new Permissao(RoleConstants.ROLE_ADMIN);
 
-            Permissao atendente = new Permissao("ROLE_ATENDENTE");
+            Permissao permissaoAtendente = new Permissao(RoleConstants.ROLE_ATENDENTE);
 
-            List<Permissao> permissoes = Arrays.asList(admin,atendente);
+            List<Permissao> permissoes = Arrays.asList(permissaoAdmin, permissaoAtendente);
 
             permissaoService.inicializarPermissoes(permissoes);
 
             Gerente gerente = new Gerente("admin", "admin", Boolean.TRUE, "Administrador");
 
+            Atendente atendente = new Atendente("atendente", "admin", Boolean.TRUE, "Atendente");
+
             Permissao permissaoGerente = permissaoService.pesquisarPermissaoPorNome("ROLE_ADMIN");
+            Permissao atendentePermission = permissaoService.pesquisarPermissaoPorNome("ROLE_ATENDENTE");
 
             gerente.getPermissoes().add(permissaoGerente);
 
-            utilizadorService.criaAdmin(gerente);
+            QuestoesSeguranca questoesAtendente = new QuestoesSeguranca();
+            questoesAtendente.setPrimeiraQuestao("Em que cidade você nasceu?");
+            questoesAtendente.setPrimeiraResposta("Maputo");
+            questoesAtendente.setSegundaQuestao("Qual é o nome do seu prato favorito?");
+            questoesAtendente.setSegundaResposta("Strogonof");
+
+            atendente.getPermissoes().add(atendentePermission);
+
+            UtilizadorDTO utilizadorDTO = utilizadorService.criaAdmin(atendente);
+            UtilizadorDTO user = utilizadorService.criaAdmin(gerente);
+
+            questoesSegurancaService.createQuestoes(questoesAtendente, utilizadorDTO.getUsername());
+            questoesSegurancaService.createQuestoes(questoesAtendente, user.getUsername());
 
         }
-
     }
-
 }

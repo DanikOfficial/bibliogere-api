@@ -1,9 +1,7 @@
 package com.pete.bibliogere.security.filter;
 
-
 import com.pete.bibliogere.security.service.TokenProviderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,7 +11,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -26,41 +23,38 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Autowired
     private TokenProviderService tokenProvider;
 
-    @Value("${jwt.accessTokenCookieName}")
-    private String accessTokenCookie;
-
-    private String getJwtToken(String accessToken) {
-        String token = accessToken.substring(7);
-        return token;
-    }
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        final String accessToken = request.getHeader("Authorization");
+        System.out.println("🟢 JwtRequestFilter - START");
 
-        String uri = request.getRequestURI();
-
+        final String authHeader = request.getHeader("Authorization");
         String username = null;
         String jwt = null;
 
-        if (accessToken != null && accessToken.startsWith("Bearer")) {
-            jwt = getJwtToken(accessToken);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+
+            // This will throw ExpiredJwtException if token is expired
+            // The exception will be caught by JwtExceptionHandlerFilter
             username = tokenProvider.getUsernameFromToken(jwt);
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities());
-            usernamePasswordAuthenticationToken
-                    .setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+            // Validate token again (this checks expiration and signature)
+            if (tokenProvider.validateToken(jwt)) {
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
         }
 
+        System.out.println("🟢 JwtRequestFilter - END");
         filterChain.doFilter(request, response);
     }
 }

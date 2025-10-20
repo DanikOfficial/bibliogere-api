@@ -1,6 +1,5 @@
 package com.pete.bibliogere.controller;
 
-import com.pete.bibliogere.api.ApiResponseObject;
 import com.pete.bibliogere.api.PesquisaUtil;
 import com.pete.bibliogere.modelo.Obra;
 import com.pete.bibliogere.services.ObraService;
@@ -10,6 +9,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -23,14 +24,12 @@ public class ObraRestController {
     @Autowired
     private PesquisaUtil pesquisaUtil;
 
-    @PostMapping(value = "/admin/obras/estante/{codigoEstante}/localizacao/{codigoLocalizacao}",
+    @PostMapping(value = "/admin/obras",
             consumes = "application/json", produces = "application/json")
-    public ResponseEntity<Obra> storeData(@Valid @RequestBody Obra obra,
-                                                         @PathVariable("codigoEstante") Long codigoEstante,
-                                                         @PathVariable("codigoLocalizacao") Long codigoLocalizacao) {
+    public ResponseEntity<Obra> storeData(@Valid @RequestBody Obra obra) {
 
         obra.setQuantidadeAtual(obra.getQuantidadeInicial());
-        Obra novaObra = service.registarObra(obra, codigoEstante, codigoLocalizacao);
+        Obra novaObra = service.registarObra(obra, obra.getCodigoEstante(), obra.getCodigoLocalizacao());
 
         return ResponseEntity.ok(novaObra);
     }
@@ -79,6 +78,7 @@ public class ObraRestController {
         return ResponseEntity.ok(obraEncontrada);
 
     }
+
     @GetMapping(value = "/obras/monografias/pagina/{pagina}/pesquisa", produces = "application/json")
     public ResponseEntity<Map<String, Object>> pesquisaMonografiasPorCriterio(@PathVariable("pagina") int pagina,
                                                                               @RequestParam("titulo") String titulo,
@@ -103,4 +103,28 @@ public class ObraRestController {
 
         return ResponseEntity.ok(pesquisa);
     }
+
+    @GetMapping(value = "/obras", produces = "application/json")
+    public ResponseEntity<List<Obra>> listarObras() {
+        return ResponseEntity.ok(service.listarObras());
+    }
+
+    @GetMapping(value = "/obras/pesquisa", produces = "application/json")
+    public ResponseEntity<List<Obra>> pesquisarObras(@RequestParam("titulo") String titulo) {
+        return ResponseEntity.ok(service.pesquisarObras(titulo));
+    }
+
+    @GetMapping(value = "/admin/obras/relatorio", produces = "application/json")
+    public ResponseEntity<List<Obra>> listarObrasPorPeriodo(
+            @RequestParam("inicio") String dataInicio,
+            @RequestParam("fim") String dataFim) {
+
+        LocalDate inicio = LocalDate.parse(dataInicio);
+        LocalDate fim = LocalDate.parse(dataFim);
+
+        List<Obra> obras = service.listarObrasPorPeriodo(inicio, fim);
+
+        return ResponseEntity.ok(obras);
+    }
+
 }

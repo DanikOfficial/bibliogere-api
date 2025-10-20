@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -37,6 +39,10 @@ public interface ObraRepositorio extends JpaRepository<Obra, Long> {
     @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
     Page<Livro> findAllLivros(Pageable page);
 
+    @Query("SELECT o FROM obras o WHERE LOWER(o.titulo) LIKE LOWER(CONCAT('%', :titulo, '%')) AND o.isDeleted != TRUE")
+    @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
+    List<Obra> findByTituloContainingIgnoreCaseAndIsDeletedNot(@Param("titulo") String titulo);
+
     @Query(value = "SELECT m FROM monografias m " +
             "WHERE (UPPER(m.titulo) LIKE %:titulo%) OR " +
             "(UPPER(m.autor) LIKE %:autor%) OR " +
@@ -56,6 +62,12 @@ public interface ObraRepositorio extends JpaRepository<Obra, Long> {
     @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
     Page<Livro> listaLivrosPorCriterio(Pageable page, @Param("titulo") String titulo, @Param("autor") String autor,
                                        @Param("editora") String editora, @Param("ano") int ano);
+
+    @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
+    List<Obra> findTop5ByIsDeletedIsFalseOrderByCodigoDesc();
+
+    @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
+    List<Obra> findAllByCreatedAtBetweenAndIsDeletedFalse(LocalDate startDate, LocalDate endDate);
 
 
 }
