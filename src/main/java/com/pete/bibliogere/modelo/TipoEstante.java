@@ -3,8 +3,8 @@ package com.pete.bibliogere.modelo;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 
 @Data
 @Entity(name = "tipo_estantes")

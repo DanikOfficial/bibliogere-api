@@ -8,6 +8,7 @@ import com.pete.bibliogere.security.model.dto.AuthResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -32,4 +33,10 @@ public interface UtilizadorService {
     AuthResponse entrar(AuthRequest authRequest);
 
     ResponseEntity<Map<String, Object>> refresh(String refreshToken);
+
+    List<AtendenteInfo> getAtendentes();
+
+    AtendenteInfo deleteAtendente(Long codigo);
+
+    AtendenteInfo desativarAtendente(Long codigo);
 }

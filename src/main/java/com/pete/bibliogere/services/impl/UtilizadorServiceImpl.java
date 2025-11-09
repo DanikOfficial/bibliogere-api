@@ -7,6 +7,7 @@ import com.pete.bibliogere.modelo.Permissao;
 import com.pete.bibliogere.modelo.RoleConstants;
 import com.pete.bibliogere.modelo.Utilizador;
 import com.pete.bibliogere.modelo.dto.UtilizadorDTO;
+import com.pete.bibliogere.modelo.excepcoes.UtilizadorAlreadyExistsException;
 import com.pete.bibliogere.repositorios.UtilizadorRepositorio;
 import com.pete.bibliogere.security.excepcoes.CredenciaisInvalidasException;
 import com.pete.bibliogere.security.excepcoes.InvalidTokenException;
@@ -29,21 +30,24 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.transaction.Transactional;
-import java.util.Map;
-import java.util.Optional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UtilizadorServiceImpl implements UtilizadorService {
 
     @Autowired
     PermissaoService permissaoService;
+
     @Autowired
     private UtilizadorRepositorio repositorio;
+
     @Autowired
     private TokenProviderService tokenProvider;
+
     @Autowired
     private CookieUtil cookieUtil;
 
@@ -84,14 +88,19 @@ public class UtilizadorServiceImpl implements UtilizadorService {
 
     @Override
     public AtendenteInfo createAtendente(CreateAtendenteRequest request) {
+        boolean isPresent = repositorio.findByUsernameIgnoreCase(request.getUsername()).isPresent();
+
+        if (isPresent) throw new UtilizadorAlreadyExistsException("Ja existe um Utilizador com este ID");
+
         Atendente atendente = new Atendente(request.getUsername(), encoder.encode("1234"), Boolean.TRUE, request.getNome());
         atendente.setIsFirstLogin(Boolean.TRUE);
         atendente.setEnabled(true);
+        atendente.setIsDeleted(false);
         Permissao atendentePermission = permissaoService.pesquisarPermissaoPorNome(RoleConstants.ROLE_ATENDENTE);
         atendente.getPermissoes().add(atendentePermission);
         atendente = repositorio.save(atendente);
 
-        return AtendenteInfo.builder().utilizador(request.getUsername()).nome(request.getNome()).isActive(atendente.getEnabled()).build();
+        return new AtendenteInfo(atendente);
     }
 
     @Override
@@ -171,6 +180,34 @@ public class UtilizadorServiceImpl implements UtilizadorService {
         Map<String, Object> res = new ApiResponseObject().buildLoginResponse(Boolean.FALSE, message, refreshResponse);
 
         return ResponseEntity.ok().headers(responseHeaders).body(res);
+    }
+
+    @Override
+    public List<AtendenteInfo> getAtendentes() {
+        List<Atendente> atendentes = repositorio.findAllAtendentes();
+        if (atendentes == null) {
+            return Collections.emptyList();
+        }
+
+        return atendentes.stream()
+                .filter(Objects::nonNull) // Filter out null elements
+                .filter(atendente -> Boolean.FALSE.equals(atendente.getIsDeleted())) // Safe null check
+                .map(AtendenteInfo::new)
+                .collect(Collectors.toList());    }
+
+    @Override
+    public AtendenteInfo deleteAtendente(Long codigo) {
+        Utilizador foundAtendente = pesquisaPorCodigo(codigo);
+        foundAtendente.setIsDeleted(Boolean.TRUE);
+        return new AtendenteInfo(foundAtendente);
+    }
+
+    @Override
+    public AtendenteInfo desativarAtendente(Long codigo) {
+        Utilizador utilizador = pesquisaPorCodigo(codigo);
+        utilizador.setEnabled(!utilizador.getEnabled());
+        utilizador = repositorio.save(utilizador);
+        return new AtendenteInfo(utilizador);
     }
 
 

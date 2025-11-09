@@ -9,17 +9,16 @@ import com.pete.bibliogere.modelo.enumeracao.SituacaoItemEmprestimo;
 import com.pete.bibliogere.modelo.excepcoes.ItemEmprestimoAlreadyExistsException;
 import com.pete.bibliogere.modelo.excepcoes.ItemEmprestimoNotFoundException;
 import com.pete.bibliogere.repositorios.ItemEmprestimoRepositorio;
-import com.pete.bibliogere.services.EmprestimoService;
 import com.pete.bibliogere.services.ObraService;
 import com.pete.bibliogere.services.impl.ItemEmprestimoService;
 import com.pete.bibliogere.utils.ReusableEntityOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
-import javax.persistence.PersistenceContext;
-import javax.transaction.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -34,8 +33,7 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
     @Autowired
     private ObraService obraService;
 
-    @Autowired
-    private EmprestimoService emprestimoService;
+    // REMOVED: EmprestimoService dependency - this fixes the circular dependency
 
     @Autowired
     private ReusableEntityOperation reusable;
@@ -45,18 +43,19 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
 
     @Override
     @Transactional
-    public List<ItemEmprestimo> registarItens(Long[] codigosObras, Long codigoEmprestimo) {
-
-        Emprestimo emprestimo = emprestimoService.pesquisarEmprestimoPorCodigo(codigoEmprestimo);
+    public List<ItemEmprestimo> registarItens(Long[] codigosObras, Emprestimo emprestimo) {
+        // Changed: Accept Emprestimo object instead of Long codigoEmprestimo
 
         List<Obra> obras = Arrays.stream(codigosObras)
                 .map(obraService::pesquisarPorCodigo)
                 .collect(Collectors.toList());
 
-        handleItensExists(Arrays.asList(codigosObras), codigoEmprestimo);
+        handleItensExists(Arrays.asList(codigosObras), emprestimo.getCodigo());
 
         obras.forEach(obra -> handleObraQuantidade(Quantidade.DIMINUIR, obra));
-        handleEmprestimoQuantidade(Quantidade.AUMENTAR, emprestimo, obras.size());
+
+        // Update emprestimo total directly
+        emprestimo.setTotalObras(emprestimo.getTotalObras() + obras.size());
 
         // Create ItemEmprestimo and save
         List<ItemEmprestimo> itensEmprestimo = obras.stream()
@@ -66,14 +65,11 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
 
         List<ItemEmprestimo> itensGravados = repositorio.saveAll(itensEmprestimo);
 
-       return itensGravados;
+        return itensGravados;
     }
-
 
     @Override
     public List<ItemEmprestimoDTO> getEmprestimoItems(Long codigoEmprestimo) {
-//        final String query = "SELECT i FROM itens_emprestimo i LEFT JOIN FETCH i.emprestimo LEFT JOIN FETCH i.obra WHERE i.emprestimo.codigo = :codigoEmprestimo";
-
         final String query = "SELECT i FROM itens_emprestimo i " +
                 "LEFT JOIN FETCH i.emprestimo ie " +
                 "LEFT JOIN FETCH i.obra io " +
@@ -84,8 +80,9 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
                 .setParameter("codigoEmprestimo", codigoEmprestimo)
                 .getResultList();
 
-        List<ItemEmprestimoDTO> itensDTO = itens.parallelStream().map(ItemEmprestimoDTO::new).collect(
-                Collectors.toList());
+        List<ItemEmprestimoDTO> itensDTO = itens.parallelStream()
+                .map(ItemEmprestimoDTO::new)
+                .collect(Collectors.toList());
 
         return itensDTO;
     }
@@ -97,20 +94,24 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
         ItemEmprestimo itemEmprestimo = pesquisaItemPorCodigo(codigo);
 
         itemEmprestimo.setSituacao(SituacaoItemEmprestimo.Devolvido);
-
         itemEmprestimo.setDataDevolvido(LocalDate.now());
 
         handleObraQuantidade(Quantidade.AUMENTAR, itemEmprestimo.getObra());
 
-        handleEmprestimoQuantidade(Quantidade.DIMINUIR, itemEmprestimo.getEmprestimo(), 1);
+        // Update emprestimo total directly
+        Emprestimo emprestimo = itemEmprestimo.getEmprestimo();
+        emprestimo.setTotalObras(emprestimo.getTotalObras() - 1);
+
+        // Update isCurrent status if no more items
+        if (emprestimo.getTotalObras() <= 0) {
+            emprestimo.setIsCurrent(Boolean.FALSE);
+        }
 
         return itemEmprestimo.getCodigo();
     }
 
     private ItemEmprestimo pesquisaItemPorCodigo(Long codigo) {
         ItemEmprestimo item;
-        //final String query = "SELECT i FROM itens_emprestimo i LEFT JOIN FETCH i.emprestimo LEFT JOIN FETCH i.obra WHERE i.codigo = :codigo";
-
         final String query = "SELECT i FROM itens_emprestimo i " +
                 "LEFT JOIN FETCH i.emprestimo " +
                 "LEFT JOIN FETCH i.obra io " +
@@ -118,7 +119,9 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
                 "LEFT JOIN FETCH io.estante WHERE i.codigo = :codigo";
 
         try {
-            item = em.createQuery(query, ItemEmprestimo.class).setParameter("codigo", codigo).getSingleResult();
+            item = em.createQuery(query, ItemEmprestimo.class)
+                    .setParameter("codigo", codigo)
+                    .getSingleResult();
             return item;
         } catch (NoResultException ex) {
             throw new ItemEmprestimoNotFoundException("O item digitado não existe!");
@@ -129,7 +132,9 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
     public List<Long> devolverItens(Emprestimo emprestimo) {
         List<ItemEmprestimo> itens = emprestimo.getItens();
 
-        List<Long> ids = itens.stream().map(ItemEmprestimo::getCodigo).collect(Collectors.toList());
+        List<Long> ids = itens.stream()
+                .map(ItemEmprestimo::getCodigo)
+                .collect(Collectors.toList());
 
         itens.forEach(item -> {
             handleObraQuantidade(Quantidade.AUMENTAR, item.getObra());
@@ -137,13 +142,15 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
             item.setDataDevolvido(LocalDate.now());
         });
 
-        handleEmprestimoQuantidade(Quantidade.DIMINUIR, emprestimo, itens.size());
+        // Update emprestimo total directly
+        emprestimo.setTotalObras(emprestimo.getTotalObras() - itens.size());
+
+        // Update isCurrent status if no more items
+        if (emprestimo.getTotalObras() <= 0) {
+            emprestimo.setIsCurrent(Boolean.FALSE);
+        }
 
         return ids;
-    }
-
-    private void handleEmprestimoQuantidade(Quantidade operacao, Emprestimo emprestimo, int quantidade) {
-        emprestimoService.alteraTotal(operacao, emprestimo, quantidade);
     }
 
     private void handleObraQuantidade(Quantidade operacao, Obra obra) {
@@ -151,18 +158,21 @@ public class ItemEmprestimoServiceImpl implements ItemEmprestimoService {
     }
 
     private void handleItensExists(List<Long> ids, Long codigoEmprestimo) {
-        List<ItemEmprestimo> itens = repositorio.findByObraCodigoInAndEmprestimoCodigoAndSituacao(ids, codigoEmprestimo,
-                SituacaoItemEmprestimo.Activo);
+        List<ItemEmprestimo> itens = repositorio.findByObraCodigoInAndEmprestimoCodigoAndSituacao(
+                ids,
+                codigoEmprestimo,
+                SituacaoItemEmprestimo.Activo
+        );
 
         if (!itens.isEmpty()) {
             StringBuilder sb = new StringBuilder();
 
-            itens.forEach(item -> sb.append("<b>Titulo</b>: " + item.getObra().getTitulo() + "</ br>"));
+            itens.forEach(item -> sb.append("<b>Titulo</b>: ")
+                    .append(item.getObra().getTitulo())
+                    .append("</ br>"));
 
             throw new ItemEmprestimoAlreadyExistsException(
                     "O Utente já tem um empréstimo activo com a(s) obra(s) escolhida(s):</ br>" + sb);
-
         }
     }
-
 }

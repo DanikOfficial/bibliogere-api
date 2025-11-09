@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
@@ -39,13 +39,18 @@ public class UtilizadorRestController {
         return ResponseEntity.ok(utilizadorService.createAtendente(request));
     }
 
+    @GetMapping(value = "/admin/utilizadores", produces = "application/json")
+    public ResponseEntity<List<AtendenteInfo>> getAtendentes() {
+        return ResponseEntity.ok(utilizadorService.getAtendentes());
+    }
+
     @PutMapping(value = "/utilizadores/password/reset/{codigo}", produces = "application/json")
     public ResponseEntity<SimpleResponse> updatePassword(@Valid @RequestBody UpdatePasswordRequest request, @PathVariable("codigo") Long codigo) {
             request.setCodigoUtilizador(codigo);
         return ResponseEntity.ok(utilizadorService.updatePassword(request));
     }
 
-    @PostMapping(value = "/admin/utilizadores/activate/{codigo}", produces = "application/json")
+    @PostMapping(value = "/utilizadores/activate/{codigo}", produces = "application/json")
     public ResponseEntity<AuthResponse> activate(@Valid @RequestBody CreatePasswordRequest request, @PathVariable("codigo") Long codigo) {
         request.setCodigoUtilizador(codigo);
         return ResponseEntity.ok(utilizadorService.createPassword(request));
@@ -66,5 +71,15 @@ public class UtilizadorRestController {
     public ResponseEntity<UserQuestoesResponse> create(@Valid @RequestBody QuestoesSegurancaOperationRequest questoesSegurancaValidateRequest, @PathVariable("codigo") Long codigo) {
         questoesSegurancaValidateRequest.setCodigoUtilizador(codigo);
         return ResponseEntity.ok(questoesSegurancaService.create(questoesSegurancaValidateRequest));
+    }
+
+    @DeleteMapping(value = "/admin/utilizadores/{codigo}", produces = "application/json")
+    public ResponseEntity<AtendenteInfo> deleteAtendente(@PathVariable("codigo") Long codigo) {
+        return ResponseEntity.ok(utilizadorService.deleteAtendente(codigo));
+    }
+
+    @PostMapping(value = "/admin/utilizadores/disable/{codigo}", produces = "application/json")
+    public ResponseEntity<AtendenteInfo> disableAtendente(@PathVariable("codigo") Long codigo) {
+        return ResponseEntity.ok(utilizadorService.desativarAtendente(codigo));
     }
 }

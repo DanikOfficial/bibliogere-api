@@ -11,7 +11,7 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 
-import javax.validation.Validator;
+import jakarta.validation.Validator;
 import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
 import java.util.Map;
