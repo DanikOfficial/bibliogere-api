@@ -52,6 +52,7 @@ public class SecurityConfig {
                 "/",
                 "/api/v1/utilizador/entrar",
                 "/api/v1/utilizador/refresh",
+                "/api/v1/recovery/**",
                 "/api/v1/localizacoes/**",
                 "/api/v1/estantes/**",
                 "/api/v1/questoes",

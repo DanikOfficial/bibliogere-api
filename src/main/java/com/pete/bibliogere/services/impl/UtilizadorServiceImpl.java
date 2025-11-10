@@ -105,7 +105,7 @@ public class UtilizadorServiceImpl implements UtilizadorService {
 
     @Override
     public AuthResponse createPassword(CreatePasswordRequest request) {
-        Utilizador utilizador = pesquisaPorCodigo(request.getCodigoUtilizador());
+        Utilizador utilizador = pesquisarPorUsername(request.getUsername());
 
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new CredenciaisInvalidasException("As senhas não coincidem");
