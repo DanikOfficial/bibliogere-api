@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+        <Property name="APP_LOG_ROOT">./logs</Property>
+    </Properties>
+
+    <Appenders>
+        <!-- Console Appender -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <!-- General Application Log File -->
+        <RollingFile name="AppLogFile"
+                     fileName="${APP_LOG_ROOT}/bibliogere.log"
+                     filePattern="${APP_LOG_ROOT}/bibliogere-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!-- HTTP Request/Response Log File -->
+        <RollingFile name="HttpLogFile"
+                     fileName="${APP_LOG_ROOT}/http-requests.log"
+                     filePattern="${APP_LOG_ROOT}/http-requests-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="20MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!-- SQL Query Log File -->
+        <RollingFile name="SqlLogFile"
+                     fileName="${APP_LOG_ROOT}/sql-queries.log"
+                     filePattern="${APP_LOG_ROOT}/sql-queries-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!-- Error Log File -->
+        <RollingFile name="ErrorLogFile"
+                     fileName="${APP_LOG_ROOT}/error.log"
+                     filePattern="${APP_LOG_ROOT}/error-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- HTTP Request/Response Logger -->
+        <Logger name="com.pete.bibliogere.config.RequestResponseLoggingFilter" level="INFO" additivity="false">
+            <AppenderRef ref="HttpLogFile"/>
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- SQL Queries Logger (using datasource-proxy) -->
+        <Logger name="net.ttddyy.dsproxy.listener" level="DEBUG" additivity="false">
+            <AppenderRef ref="SqlLogFile"/>
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Hibernate SQL -->
+        <Logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <AppenderRef ref="SqlLogFile"/>
+        </Logger>
+
+        <!-- Hibernate SQL Parameters -->
+        <Logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE" additivity="false">
+            <AppenderRef ref="SqlLogFile"/>
+        </Logger>
+
+        <!-- Spring Framework -->
+        <Logger name="org.springframework" level="INFO"/>
+        <Logger name="org.springframework.web" level="INFO"/>
+        <Logger name="org.springframework.security" level="INFO"/>
+
+        <!-- Your Application Package -->
+        <Logger name="com.pete.bibliogere" level="DEBUG" additivity="false">
+            <AppenderRef ref="AppLogFile"/>
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Root Logger -->
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AppLogFile"/>
+            <AppenderRef ref="ErrorLogFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

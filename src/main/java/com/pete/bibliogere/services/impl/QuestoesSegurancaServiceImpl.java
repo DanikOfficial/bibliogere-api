@@ -1,8 +1,6 @@
 package com.pete.bibliogere.services.impl;
 
-import com.pete.bibliogere.dto.QuestoesSegurancaOperationRequest;
-import com.pete.bibliogere.dto.UserQuestoesResponse;
-import com.pete.bibliogere.dto.ValidateQuestoesResponse;
+import com.pete.bibliogere.dto.*;
 import com.pete.bibliogere.modelo.QuestoesSeguranca;
 import com.pete.bibliogere.modelo.Utilizador;
 import com.pete.bibliogere.modelo.excepcoes.DuplicateQuestionException;
@@ -13,6 +11,8 @@ import com.pete.bibliogere.services.QuestoesSegurancaService;
 import com.pete.bibliogere.services.UtilizadorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 public class QuestoesSegurancaServiceImpl implements QuestoesSegurancaService {
@@ -79,11 +79,9 @@ public class QuestoesSegurancaServiceImpl implements QuestoesSegurancaService {
         return repository.save(questoesSeguranca);
     }
 
-    @Override
-    public ValidateQuestoesResponse validate(QuestoesSegurancaOperationRequest request) {
-        Utilizador utilizador = utilizadorService.pesquisaPorCodigo(request.getCodigoUtilizador());
-        QuestoesSeguranca questaoUtilizador = utilizador.getQuestoesSeguranca();
 
+
+    private ValidateQuestoesResponse validate(QuestoesSeguranca questaoUtilizador, IValidateQuestoesSegurancaRequestWrapper request) {
         boolean firstQuestionValid = questaoUtilizador.getPrimeiraQuestao().trim().equalsIgnoreCase(request.getPrimeiraQuestao().trim()) &&
                 questaoUtilizador.getPrimeiraResposta().trim().equalsIgnoreCase(request.getPrimeiraResposta().trim());
 
@@ -103,6 +101,21 @@ public class QuestoesSegurancaServiceImpl implements QuestoesSegurancaService {
     }
 
     @Override
+    public ValidateQuestoesResponse validate(ValidateQuestoesRequest request) {
+        Utilizador utilizador = utilizadorService.pesquisarPorUsername(request.username());
+        QuestoesSeguranca questaoUtilizador = utilizador.getQuestoesSeguranca();
+        return validate(questaoUtilizador, request);
+    }
+
+    @Override
+    public ValidateQuestoesResponse validate(QuestoesSegurancaOperationRequest request) {
+        Utilizador utilizador = utilizadorService.pesquisaPorCodigo(request.getCodigoUtilizador());
+        QuestoesSeguranca questaoUtilizador = utilizador.getQuestoesSeguranca();
+
+        return validate(questaoUtilizador, request);
+    }
+
+    @Override
     public UserQuestoesResponse create(QuestoesSegurancaOperationRequest request) {
         if (request.isUpdating()) {
             return new UserQuestoesResponse(updateQuestoes(request));
@@ -116,5 +129,29 @@ public class QuestoesSegurancaServiceImpl implements QuestoesSegurancaService {
         Utilizador utilizador = utilizadorService.pesquisaPorCodigo(codigoUtilizador);
         QuestoesSeguranca questoesSeguranca = utilizador.getQuestoesSeguranca();
         return new UserQuestoesResponse(questoesSeguranca);
+    }
+
+    @Override
+    public FetchUserQuestoesByUsernameResponse getUserQuestoesFromRecover(
+            FetchUserQuestoesByUsernameRequest request) {
+
+        Utilizador utilizador = utilizadorService.pesquisarPorUsername(request.username());
+        QuestoesSeguranca questoesSeguranca = utilizador.getQuestoesSeguranca();
+
+        if (questoesSeguranca == null) {
+            return new FetchUserQuestoesByUsernameResponse(
+                    null,
+                    null,
+                    utilizador.getIsFirstLogin(),
+                    utilizador.getEnabled()
+            );
+        }
+
+        return new FetchUserQuestoesByUsernameResponse(
+                questoesSeguranca.getPrimeiraQuestao(),
+                questoesSeguranca.getSegundaQuestao(),
+                utilizador.getIsFirstLogin(),
+                utilizador.getEnabled()
+        );
     }
 }

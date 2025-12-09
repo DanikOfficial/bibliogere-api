@@ -116,13 +116,7 @@ public class BibliogereEntityInitializer {
             gerente.setIsDeleted(Boolean.FALSE);
             gerente.setIsFirstLogin(Boolean.FALSE);
 
-
-            Atendente atendente = new Atendente("atendente", "admin", Boolean.TRUE, "Atendente");
-            atendente.setIsDeleted(Boolean.FALSE);
-            atendente.setIsFirstLogin(Boolean.FALSE);
-
             Permissao permissaoGerente = permissaoService.pesquisarPermissaoPorNome("ROLE_ADMIN");
-            Permissao atendentePermission = permissaoService.pesquisarPermissaoPorNome("ROLE_ATENDENTE");
 
             gerente.getPermissoes().add(permissaoGerente);
 
@@ -132,12 +126,8 @@ public class BibliogereEntityInitializer {
             questoesAtendente.setSegundaQuestao("Qual é o nome do seu prato favorito?");
             questoesAtendente.setSegundaResposta("Strogonof");
 
-            atendente.getPermissoes().add(atendentePermission);
-
-            UtilizadorDTO utilizadorDTO = utilizadorService.criaAdmin(atendente);
             UtilizadorDTO user = utilizadorService.criaAdmin(gerente);
 
-            questoesSegurancaService.createQuestoes(questoesAtendente, utilizadorDTO.getUsername());
             questoesSegurancaService.createQuestoes(questoesAtendente, user.getUsername());
 
         }

@@ -5,7 +5,7 @@ import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 
 @Data
-public class QuestoesSegurancaOperationRequest {
+public class QuestoesSegurancaOperationRequest implements IValidateQuestoesSegurancaRequestWrapper {
     Long codigoUtilizador;
 
     @NotBlank(message = "A primeira questão é obrigatória e não pode estar em branco")
