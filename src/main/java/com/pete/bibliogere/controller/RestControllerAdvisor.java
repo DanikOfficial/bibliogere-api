@@ -120,7 +120,8 @@ public class RestControllerAdvisor extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler({
             CredenciaisInvalidasException.class,
-            InvalidTokenException.class
+            InvalidTokenException.class,
+            UtilizadorDisabledExcception.class
     })
     public ResponseEntity<Object> handleInvalidException(
             RuntimeException ex,

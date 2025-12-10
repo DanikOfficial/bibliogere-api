@@ -8,6 +8,7 @@ import com.pete.bibliogere.modelo.RoleConstants;
 import com.pete.bibliogere.modelo.Utilizador;
 import com.pete.bibliogere.modelo.dto.UtilizadorDTO;
 import com.pete.bibliogere.modelo.excepcoes.UtilizadorAlreadyExistsException;
+import com.pete.bibliogere.modelo.excepcoes.UtilizadorDisabledExcception;
 import com.pete.bibliogere.repositorios.UtilizadorRepositorio;
 import com.pete.bibliogere.security.excepcoes.CredenciaisInvalidasException;
 import com.pete.bibliogere.security.excepcoes.InvalidTokenException;
@@ -32,7 +33,6 @@ import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -105,12 +105,13 @@ public class UtilizadorServiceImpl implements UtilizadorService {
 
     @Override
     public AuthResponse createPassword(CreatePasswordRequest request) {
-        Utilizador utilizador = pesquisaPorCodigo(request.getCodigoUtilizador());
+        Utilizador utilizador = pesquisarPorUsername(request.getUsername());
 
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new CredenciaisInvalidasException("As senhas não coincidem");
         }
         utilizador.setPassword(encoder.encode(request.getNewPassword()));
+        utilizador.setIsFirstLogin(Boolean.FALSE);
         utilizador = repositorio.save(utilizador);
         return entrar(AuthRequest.builder().username(utilizador.getUsername()).password(request.getNewPassword()).build());
     }
@@ -141,6 +142,8 @@ public class UtilizadorServiceImpl implements UtilizadorService {
     @Override
     public AuthResponse entrar(AuthRequest authRequest) {
         Utilizador utilizador = pesquisarPorUsername(authRequest.getUsername());
+
+        if (!utilizador.getEnabled()) throw new UtilizadorDisabledExcception("Este utilizador esta desativado. Contacte o seu Gerente!");
 
         try {
             Authentication authentication = new UsernamePasswordAuthenticationToken(authRequest.getUsername(),

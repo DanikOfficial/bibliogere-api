@@ -1,7 +1,6 @@
 package com.pete.bibliogere.controller;
 
 import com.pete.bibliogere.dto.*;
-import com.pete.bibliogere.modelo.Questao;
 import com.pete.bibliogere.security.model.dto.AuthRequest;
 import com.pete.bibliogere.security.model.dto.AuthResponse;
 import com.pete.bibliogere.services.QuestoesSegurancaService;
@@ -50,9 +49,8 @@ public class UtilizadorRestController {
         return ResponseEntity.ok(utilizadorService.updatePassword(request));
     }
 
-    @PostMapping(value = "/utilizadores/activate/{codigo}", produces = "application/json")
-    public ResponseEntity<AuthResponse> activate(@Valid @RequestBody CreatePasswordRequest request, @PathVariable("codigo") Long codigo) {
-        request.setCodigoUtilizador(codigo);
+    @PostMapping(value = "/utilizadores/activate", produces = "application/json")
+    public ResponseEntity<AuthResponse> activate(@Valid @RequestBody CreatePasswordRequest request) {
         return ResponseEntity.ok(utilizadorService.createPassword(request));
     }
 
@@ -60,6 +58,11 @@ public class UtilizadorRestController {
     public ResponseEntity<ValidateQuestoesResponse> validateQuestoes(@Valid @RequestBody QuestoesSegurancaOperationRequest questoesSegurancaValidateRequest, @PathVariable("codigo") Long codigo) {
         questoesSegurancaValidateRequest.setCodigoUtilizador(codigo);
         return ResponseEntity.ok(questoesSegurancaService.validate(questoesSegurancaValidateRequest));
+    }
+
+    @PostMapping(value = "/recovery/utilizadores/questoes/validate", produces = "application/json")
+    public ResponseEntity<ValidateQuestoesResponse> validateQuestoes(@Valid @RequestBody ValidateQuestoesRequest request) {
+        return ResponseEntity.ok(questoesSegurancaService.validate(request));
     }
 
     @GetMapping(value = "/utilizadores/{codigoUtilizador}/questoes", produces = "application/json")
@@ -71,6 +74,11 @@ public class UtilizadorRestController {
     public ResponseEntity<UserQuestoesResponse> create(@Valid @RequestBody QuestoesSegurancaOperationRequest questoesSegurancaValidateRequest, @PathVariable("codigo") Long codigo) {
         questoesSegurancaValidateRequest.setCodigoUtilizador(codigo);
         return ResponseEntity.ok(questoesSegurancaService.create(questoesSegurancaValidateRequest));
+    }
+
+    @PostMapping(value = "/recovery/utilizadores/questoes", produces = "application/json")
+    public ResponseEntity<FetchUserQuestoesByUsernameResponse> getUserQuestoesFromUsername(@Valid @RequestBody FetchUserQuestoesByUsernameRequest findUserQuestoesByUsernameRequest) {
+        return ResponseEntity.ok(questoesSegurancaService.getUserQuestoesFromRecover(findUserQuestoesByUsernameRequest));
     }
 
     @DeleteMapping(value = "/admin/utilizadores/{codigo}", produces = "application/json")
