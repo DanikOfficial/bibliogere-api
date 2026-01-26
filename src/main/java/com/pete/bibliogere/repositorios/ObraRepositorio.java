@@ -39,9 +39,8 @@ public interface ObraRepositorio extends JpaRepository<Obra, Long> {
     @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
     Page<Livro> findAllLivros(Pageable page);
 
-    @Query("SELECT o FROM obras o WHERE LOWER(o.titulo) LIKE LOWER(CONCAT('%', :titulo, '%')) AND o.isDeleted != TRUE")
     @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
-    List<Obra> findByTituloContainingIgnoreCaseAndIsDeletedNot(@Param("titulo") String titulo);
+    List<Obra> findByTituloStartingWithIgnoreCase(@Param("titulo") String titulo);
 
     @Query(value = "SELECT m FROM monografias m " +
             "WHERE (UPPER(m.titulo) LIKE %:titulo%) OR " +
@@ -67,7 +66,5 @@ public interface ObraRepositorio extends JpaRepository<Obra, Long> {
     List<Obra> findTop5ByIsDeletedIsFalseOrderByCodigoDesc();
 
     @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
-    List<Obra> findAllByCreatedAtBetweenAndIsDeletedFalse(LocalDate startDate, LocalDate endDate);
-
-
+    List<Obra> findAllByCreatedAtBetween(LocalDate startDate, LocalDate endDate);
 }

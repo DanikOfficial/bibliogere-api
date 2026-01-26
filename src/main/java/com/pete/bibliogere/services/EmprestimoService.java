@@ -2,9 +2,11 @@ package com.pete.bibliogere.services;
 
 import com.pete.bibliogere.dto.EmprestimoDTO;
 import com.pete.bibliogere.dto.EmprestimoReadDTO;
-import com.pete.bibliogere.dto.FindBetweenDatesRequest;
+import com.pete.bibliogere.dto.GenerateEmprestimosReportRequest;
 import com.pete.bibliogere.modelo.Emprestimo;
+import com.pete.bibliogere.modelo.enumeracao.SituacaoItemEmprestimo;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -73,5 +75,7 @@ public interface EmprestimoService {
      * @param datesDTO Date range
      * @return List of EmprestimoDTO
      */
-    List<EmprestimoDTO> findEmprestimosBetween(FindBetweenDatesRequest datesDTO);
+    List<EmprestimoDTO> findEmprestimosBetween(GenerateEmprestimosReportRequest datesDTO);
+
+    List<EmprestimoDTO> gerarRelatorio(GenerateEmprestimosReportRequest request);
 }

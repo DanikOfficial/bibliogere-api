@@ -48,7 +48,7 @@ public class RestControllerAdvisor extends ResponseEntityExceptionHandler {
     }
 
 
-    @ExceptionHandler(value = CustomValidationException.class)
+    @ExceptionHandler(value = {CustomValidationException.class})
     public ResponseEntity<Object> customExceptionHandling(
             CustomValidationException ex,
             WebRequest request) {
@@ -121,7 +121,9 @@ public class RestControllerAdvisor extends ResponseEntityExceptionHandler {
     @ExceptionHandler({
             CredenciaisInvalidasException.class,
             InvalidTokenException.class,
-            UtilizadorDisabledExcception.class
+            UtilizadorDisabledExcception.class,
+            ObraException.class,
+            SimpleValidationException.class
     })
     public ResponseEntity<Object> handleInvalidException(
             RuntimeException ex,

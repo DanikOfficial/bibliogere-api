@@ -2,7 +2,7 @@ package com.pete.bibliogere.controller;
 
 import com.pete.bibliogere.dto.EmprestimoDTO;
 import com.pete.bibliogere.dto.EmprestimoReadDTO;
-import com.pete.bibliogere.dto.FindBetweenDatesRequest;
+import com.pete.bibliogere.dto.GenerateEmprestimosReportRequest;
 import com.pete.bibliogere.modelo.Emprestimo;
 import com.pete.bibliogere.services.EmprestimoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,10 +77,8 @@ public class EmprestimoRestController {
         return ResponseEntity.ok(emprestimos);
     }
 
-    @GetMapping(value = "/admin/emprestimos/relatorio")
-    public ResponseEntity<List<EmprestimoDTO>> gerarRelatorioEmprestimos(@RequestBody @Valid FindBetweenDatesRequest findBetweenDatesDTO) {
-        List<EmprestimoDTO> emprestimos = service.findEmprestimosBetween(findBetweenDatesDTO);
-
-        return ResponseEntity.ok(emprestimos);
+    @PostMapping(value = "/admin/emprestimos/relatorio")
+    public ResponseEntity<List<EmprestimoDTO>> gerarRelatorioEmprestimos(@RequestBody @Valid GenerateEmprestimosReportRequest request) {
+        return ResponseEntity.ok(service.gerarRelatorio(request));
     }
 }
