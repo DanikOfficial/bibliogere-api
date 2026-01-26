@@ -6,11 +6,13 @@ import lombok.NoArgsConstructor;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import org.hibernate.annotations.SQLRestriction;
 
 @Data
 @Entity(name = "estantes")
 @Table(name = "estantes")
 @NoArgsConstructor
+@SQLRestriction("is_deleted = false")
 public class Estante implements GenericModel, ValidableModel {
 
     @Id

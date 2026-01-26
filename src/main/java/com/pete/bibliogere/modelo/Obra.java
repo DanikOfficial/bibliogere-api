@@ -11,6 +11,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.SQLRestriction;
+
 import java.time.LocalDate;
 
 @Entity(name = "obras")
@@ -33,6 +35,7 @@ import java.time.LocalDate;
                 @NamedAttributeNode(value = "estante")
         })
 })
+@SQLRestriction("is_deleted = false")
 public abstract class Obra implements GenericModel, ValidableModel {
 
     @Id

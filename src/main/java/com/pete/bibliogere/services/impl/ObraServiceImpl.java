@@ -144,7 +144,7 @@ public class ObraServiceImpl implements ObraService {
 
     @Override
     public List<Obra> pesquisarObras(String titulo) {
-        return repositorio.findByTituloContainingIgnoreCaseAndIsDeletedNot(titulo);
+        return repositorio.findByTituloStartingWithIgnoreCase(titulo);
     }
 
     @Override
@@ -259,7 +259,7 @@ public class ObraServiceImpl implements ObraService {
             throw new ObraException("A data de início não pode ser posterior à data final.");
         }
 
-        List<Obra> obras = repositorio.findAllByCreatedAtBetweenAndIsDeletedFalse(dataInicio, dataFim);
+        List<Obra> obras = repositorio.findAllByCreatedAtBetween(dataInicio, dataFim);
 
         if (obras.isEmpty()) {
             throw new ObraNotFoundException("Nenhuma obra encontrada no período especificado.");
