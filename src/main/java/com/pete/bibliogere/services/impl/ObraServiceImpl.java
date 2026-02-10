@@ -1,5 +1,6 @@
 package com.pete.bibliogere.services.impl;
 
+import com.pete.bibliogere.dto.GenerateObraReportRequest;
 import com.pete.bibliogere.modelo.*;
 import com.pete.bibliogere.modelo.enumeracao.Quantidade;
 import com.pete.bibliogere.modelo.excepcoes.ObraAlreadyExistsException;
@@ -206,6 +207,11 @@ public class ObraServiceImpl implements ObraService {
 
     }
 
+    @Override
+    public List<Obra> listarObrasPorPeriodo(GenerateObraReportRequest request) {
+        return List.of();
+    }
+
     private void handleObraExists(Obra obra) {
 
         Optional<Obra> obraOptional = repositorio.findObraByAutorIgnoreCaseAndTituloIgnoreCaseAndTipoObraIgnoreCase(
@@ -249,7 +255,15 @@ public class ObraServiceImpl implements ObraService {
 
     }
 
-    @Override
+    public List<Obra> generateObraReport(GenerateObraReportRequest request) {
+        return repositorio.findObrasForReport(
+                request.getDataInicio(),
+                request.getDataFim(),
+                request.getTipoObra() != null ? request.getTipoObra() : "",
+                request.getNomeEstante() != null ? request.getNomeEstante() : ""
+        );
+    }
+
     public List<Obra> listarObrasPorPeriodo(LocalDate dataInicio, LocalDate dataFim) {
         if (dataInicio == null || dataFim == null) {
             throw new ObraException("As datas de início e fim são obrigatórias para o relatório.");

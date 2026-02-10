@@ -1,6 +1,7 @@
 package com.pete.bibliogere.services;
 
 
+import com.pete.bibliogere.dto.GenerateObraReportRequest;
 import com.pete.bibliogere.modelo.Obra;
 import com.pete.bibliogere.modelo.enumeracao.Quantidade;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public interface ObraService {
 
     void alteraQuantidade(Quantidade operacao, Obra obra);
 
-    List<Obra> listarObrasPorPeriodo(LocalDate dataInicio, LocalDate dataFim);
+    List<Obra> listarObrasPorPeriodo(GenerateObraReportRequest request);
 
+    List<Obra> generateObraReport(GenerateObraReportRequest request);
 }

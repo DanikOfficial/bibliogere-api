@@ -67,4 +67,15 @@ public interface ObraRepositorio extends JpaRepository<Obra, Long> {
 
     @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
     List<Obra> findAllByCreatedAtBetween(LocalDate startDate, LocalDate endDate);
+
+    @Query(value = "SELECT o FROM obras o " +
+            "WHERE o.createdAt BETWEEN :dataInicio AND :dataFim " +
+            "AND (:tipoObra IS NULL OR :tipoObra = '' OR LOWER(o.tipoObra) = LOWER(:tipoObra)) " +
+            "AND (:nomeEstante IS NULL OR :nomeEstante = '' OR LOWER(o.nomeEstante) = LOWER(:nomeEstante)) " +
+            "AND o.isDeleted = FALSE")
+    @EntityGraph(attributePaths = {"estante", "localizacao"}, type = EntityGraph.EntityGraphType.FETCH)
+    List<Obra> findObrasForReport(@Param("dataInicio") LocalDate dataInicio,
+                                  @Param("dataFim") LocalDate dataFim,
+                                  @Param("tipoObra") String tipoObra,
+                                  @Param("nomeEstante") String nomeEstante);
 }

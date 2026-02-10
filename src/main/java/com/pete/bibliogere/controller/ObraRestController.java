@@ -1,6 +1,7 @@
 package com.pete.bibliogere.controller;
 
 import com.pete.bibliogere.api.PesquisaUtil;
+import com.pete.bibliogere.dto.GenerateObraReportRequest;
 import com.pete.bibliogere.modelo.Obra;
 import com.pete.bibliogere.modelo.excepcoes.ObraException;
 import com.pete.bibliogere.services.ObraService;
@@ -114,18 +115,17 @@ public class ObraRestController {
         return ResponseEntity.ok(service.pesquisarObras(titulo));
     }
 
-    @GetMapping(value = "/admin/obras/relatorio", produces = "application/json")
+    @PostMapping(value = "/admin/obras/relatorio", produces = "application/json")
     public ResponseEntity<List<Obra>> listarObrasPorPeriodo(
-            @RequestParam LocalDate inicio,
-            @RequestParam LocalDate fim) {
+            @Valid @RequestBody GenerateObraReportRequest request) {
 
-        if (fim.isBefore(inicio)) {
+        if (request.getDataFim().isBefore(request.getDataInicio())) {
             throw new ObraException(
                     "Data final não pode ser anterior à data inicial"
             );
         }
 
-        List<Obra> obras = service.listarObrasPorPeriodo(inicio, fim);
+        List<Obra> obras = service.generateObraReport(request);
         return ResponseEntity.ok(obras);
     }
 
