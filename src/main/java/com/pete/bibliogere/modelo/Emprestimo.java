@@ -17,6 +17,28 @@ import java.util.List;
                 @Index(name = "idx_emprestimos_created_at", columnList = "createdAt")
         }
 )
+@NamedEntityGraph(
+        name = "Emprestimo.completo",
+        attributeNodes = {
+                @NamedAttributeNode(value = "itens", subgraph = "itens-subgraph")
+        },
+        subgraphs = {
+                @NamedSubgraph(
+                        name = "itens-subgraph",
+                        attributeNodes = {
+                                @NamedAttributeNode(value = "obra", subgraph = "obra-subgraph")
+                        }
+                ),
+                @NamedSubgraph(
+                        name = "obra-subgraph",
+                        attributeNodes = {
+                                @NamedAttributeNode("estante"),
+                                @NamedAttributeNode("localizacao")
+                        }
+                )
+        }
+)
+
 @NoArgsConstructor
 public class Emprestimo implements ValidableModel {
 

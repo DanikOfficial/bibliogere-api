@@ -91,7 +91,7 @@ public class EstanteServiceImpl implements EstanteService {
 
         Estante estante = pesquisarEstantePorCodigo(id);
 
-        BigInteger total = (BigInteger) em.createNativeQuery(
+        Long total = (Long) em.createNativeQuery(
                 "SELECT COUNT(titulo) FROM obras WHERE codigo_estante = :codigo AND is_deleted = FALSE")
                 .setParameter("codigo", id).getSingleResult();
 

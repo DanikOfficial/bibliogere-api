@@ -16,6 +16,8 @@ public class EmprestimoDTO {
 
     private String email;
 
+    private int multa;
+
     private List<ItemEmprestimoDTO> itens;
 
     public EmprestimoDTO(Emprestimo emprestimo) {
@@ -23,6 +25,7 @@ public class EmprestimoDTO {
         this.utente = emprestimo.getUtente();
         this.contacto = emprestimo.getContacto();
         this.email = emprestimo.getEmail();
+        this.multa = emprestimo.getMulta();
         this.itens = emprestimo.getItens().stream().map(ItemEmprestimoDTO::new).collect(Collectors.toList());
     }
 }

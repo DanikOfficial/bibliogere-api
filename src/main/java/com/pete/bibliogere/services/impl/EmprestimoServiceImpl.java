@@ -1,16 +1,19 @@
+// Fixed EmprestimoServiceImpl.java
 package com.pete.bibliogere.services.impl;
 
 import com.pete.bibliogere.dto.EmprestimoDTO;
 import com.pete.bibliogere.dto.EmprestimoReadDTO;
-import com.pete.bibliogere.dto.FindBetweenDatesRequest;
+import com.pete.bibliogere.dto.GenerateEmprestimosReportRequest;
 import com.pete.bibliogere.modelo.Emprestimo;
 import com.pete.bibliogere.modelo.ItemEmprestimo;
+import com.pete.bibliogere.modelo.enumeracao.SituacaoItemEmprestimo;
 import com.pete.bibliogere.modelo.excepcoes.EmprestimoAlreadyExistsException;
 import com.pete.bibliogere.modelo.excepcoes.EmprestimoNotFoundException;
+import com.pete.bibliogere.modelo.excepcoes.SimpleValidationException;
 import com.pete.bibliogere.repositorios.EmprestimoRepositorio;
 import com.pete.bibliogere.services.EmprestimoService;
 import com.pete.bibliogere.utils.ReusableEntityOperation;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +24,7 @@ import jakarta.persistence.PersistenceContext;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class EmprestimoServiceImpl implements EmprestimoService {
@@ -43,7 +47,7 @@ public class EmprestimoServiceImpl implements EmprestimoService {
 
         emprestimo.setIsCurrent(Boolean.TRUE);
         emprestimo.setCreatedAt(LocalDate.now());
-        emprestimo.setDataDevolucao(LocalDate.now().plusDays(2));
+        emprestimo.setDataDevolucao(calculateReturnDate(LocalDate.now(), 2));
         emprestimo.setMulta(0);
         emprestimo.setTotalObras(0); // Initialize total to 0
 
@@ -61,6 +65,27 @@ public class EmprestimoServiceImpl implements EmprestimoService {
         // Note: totalObras is already updated inside registarItens method
 
         return new EmprestimoDTO(savedEmprestimo);
+    }
+
+    /**
+     * Calculates the return date by adding business days (skipping weekends)
+     * @param startDate The starting date
+     * @param businessDays Number of business days to add
+     * @return The calculated return date (always a weekday)
+     */
+    private LocalDate calculateReturnDate(LocalDate startDate, int businessDays) {
+        LocalDate returnDate = startDate;
+        int daysAdded = 0;
+
+        while (daysAdded < businessDays) {
+            returnDate = returnDate.plusDays(1);
+            // Skip Saturday (6) and Sunday (7)
+            if (returnDate.getDayOfWeek().getValue() < 6) {
+                daysAdded++;
+            }
+        }
+
+        return returnDate;
     }
 
     @Override
@@ -130,7 +155,35 @@ public class EmprestimoServiceImpl implements EmprestimoService {
     }
 
     @Override
-    public List<EmprestimoDTO> findEmprestimosBetween(FindBetweenDatesRequest datesDTO) {
+    @Transactional(readOnly = true)
+    public List<EmprestimoDTO> gerarRelatorio(GenerateEmprestimosReportRequest request) {
+        // Validate that dataInicio is before dataFim
+        if (request.getDataInicio().isAfter(request.getDataFim())) {
+            throw new SimpleValidationException("A data de início deve ser anterior à data de fim");
+        }
+
+        List<Emprestimo> emprestimos;
+
+        if (request.getSituacaoEmprestimo() != null && !request.getSituacaoEmprestimo().isEmpty()) {
+            // Convert String to Enum
+            SituacaoItemEmprestimo situacaoEnum = SituacaoItemEmprestimo.valueOf(request.getSituacaoEmprestimo());
+
+            // Filter by date range and situation
+            emprestimos = repositorio.findByCreatedAtBetweenAndItensSituacao(
+                    request.getDataInicio(), request.getDataFim(), situacaoEnum);
+        } else {
+            // Filter only by date range
+            emprestimos = repositorio.findByCreatedAtBetween(
+                    request.getDataInicio(), request.getDataFim());
+        }
+
+        return emprestimos.stream()
+                .map(EmprestimoDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<EmprestimoDTO> findEmprestimosBetween(GenerateEmprestimosReportRequest datesDTO) {
         return null;
     }
 
